@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Programación de Visitas a Clientes</title>
+    <script src="xlsx.js"></script>
+    <style>
+        :root {
+            --primary-color: #2e7d32;
+            --primary-dark: #1b5e20;
+            --secondary-color: #f5f5f5;
+            --text-color: #333;
+            --border-color: #ddd;
+            --success-color: #4caf50;
+            --pending-color: #ff9800;
+            --danger-color: #f44336;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f9f9f9;
+            color: var(--text-color);
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 20px;
+            border-bottom: 2px solid var(--primary-color);
+            margin-bottom: 20px;
+        }
+
+        h1 { color: var(--primary-dark); font-size: 24px; }
+
+        .btn {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            color: white;
+            transition: background-color 0.3s;
+        }
+        .btn-primary { background-color: var(--primary-color); }
+        .btn-primary:hover { background-color: var(--primary-dark); }
+        .btn-danger { background-color: var(--danger-color); }
+        .btn-danger:hover { background-color: #d32f2f; }
+        .btn-edit { background-color: #2196f3; padding: 5px 10px; font-size: 13px;}
+        .btn-edit:hover { background-color: #0b7dda; }
+        .btn-delete { background-color: var(--danger-color); padding: 5px 10px; font-size: 13px;}
+        .btn-delete:hover { background-color: #d32f2f; }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .controls input, .controls select {
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        .controls input { flex-grow: 1; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        th {
+            background-color: var(--secondary-color);
+            color: var(--primary-dark);
+            font-weight: bold;
+        }
+
+        tr:hover { background-color: #f1f1f1; }
+        tbody tr { cursor: pointer; transition: background-color 0.2s; }
+        tbody tr:hover { background-color: #e3f2fd; }
+
+        .status-badge {
+            padding: 5px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            color: white;
+            text-align: center;
+            display: inline-block;
+        }
+        .status-pending { background-color: var(--pending-color); }
+        .status-attended { background-color: var(--success-color); }
+
+        .empty-state {
+            text-align: center;
+            padding: 30px;
+            color: #777;
+            font-size: 16px;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 100;
+            left: 0; top: 0;
+            width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-content {
+            background-color: white;
+            padding: 25px;
+            border-radius: 8px;
+            width: 100%;
+            max-width: 500px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            position: relative;
+        }
+        .close {
+            position: absolute;
+            top: 15px; right: 20px;
+            font-size: 24px;
+            font-weight: bold;
+            color: #aaa;
+            cursor: pointer;
+        }
+        .close:hover { color: black; }
+        
+        .form-group {
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+        }
+        .form-group label {
+            margin-bottom: 5px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        .form-group input, .form-group select {
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-family: inherit;
+        }
+        
+        .modal-title {
+            margin-bottom: 20px;
+            color: var(--primary-dark);
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>Programación de Visitas</h1>
+        <div>
+            <button id="btn-add-client" class="btn btn-primary">+ Agregar Cliente Manual</button>
+            <button id="btn-export-excel" class="btn" style="background-color: #107c41; color: white;">Descargar Excel</button>
+            <button id="btn-clear-all" class="btn btn-danger">Borrar Todo</button>
+        </div>
+    </header>
+
+    <div id="loading-indicator" style="display: none; text-align: center; padding: 10px; background-color: #e3f2fd; color: #1565c0; font-weight: bold; margin-bottom: 15px; border-radius: 4px;">
+        Sincronizando con Google Sheets...
+    </div>
+
+    <div class="controls">
+        <input type="text" id="search-input" placeholder="Buscar por cliente o DNI...">
+        <select id="status-filter">
+            <option value="all">Todos los estados</option>
+            <option value="Pendiente">Pendiente</option>
+            <option value="Atendido">Atendido</option>
+        </select>
+    </div>
+
+    <div style="overflow-x: auto;">
+        <table>
+            <thead>
+                <tr>
+                    <th>CLIENTE</th>
+                    <th>DNI</th>
+                    <th>N° DE TELEFONO</th>
+                    <th>PRODUCTO</th>
+                    <th>MONTO</th>
+                    <th>LUGAR DE VISITA</th>
+                    <th>FECHA DE VISITA</th>
+                    <th>TURNO</th>
+                    <th>SITUACION</th>
+                    <th>ESTADO DESEMBOLSO</th>
+                    <th>ACCIONES</th>
+                </tr>
+            </thead>
+            <tbody id="clients-tbody">
+                <!-- Data goes here -->
+            </tbody>
+        </table>
+        <div id="empty-state" class="empty-state" style="display: none;">
+            No hay clientes registrados. Haz clic en "Agregar Cliente Manual" para empezar.
+        </div>
+    </div>
+</div>
+
+<!-- Modal Formulario -->
+<div id="client-modal" class="modal">
+    <div class="modal-content">
+        <span class="close" id="close-modal">&times;</span>
+        <h2 class="modal-title" id="modal-title">Agregar Nuevo Cliente</h2>
+        
+        <form id="client-form">
+            <input type="hidden" id="client-id">
+            
+            <div class="form-group">
+                <label for="cliente">CLIENTE (Nombres y Apellidos) *</label>
+                <input type="text" id="cliente" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="dni">DNI</label>
+                <input type="text" id="dni">
+            </div>
+            
+            <div class="form-group">
+                <label for="telefono">N° DE TELEFONO</label>
+                <input type="text" id="telefono">
+            </div>
+            
+            <div class="form-group">
+                <label for="producto">PRODUCTO</label>
+                <input type="text" id="producto" list="productos-list" autocomplete="off">
+                <datalist id="productos-list">
+                    <option value="Maíz"></option>
+                    <option value="Caña de Azúcar"></option>
+                    <option value="Espárrago"></option>
+                    <option value="Arroz"></option>
+                    <option value="Palta"></option>
+                </datalist>
+            </div>
+            
+            <div class="form-group">
+                <label for="monto">MONTO</label>
+                <input type="number" id="monto" step="0.01">
+            </div>
+            
+            <div class="form-group">
+                <label for="lugar">LUGAR DE VISITA</label>
+                <input type="text" id="lugar" list="lugares-list" autocomplete="off">
+                <datalist id="lugares-list">
+                    <!-- Opciones generadas dinámicamente -->
+                </datalist>
+            </div>
+            
+            <div class="form-group">
+                <label for="fecha">FECHA DE VISITA</label>
+                <input type="date" id="fecha">
+            </div>
+            
+            <div class="form-group">
+                <label for="turno">TURNO DE VISITA</label>
+                <select id="turno">
+                    <option value="-">-</option>
+                    <option value="Mañana">Mañana</option>
+                    <option value="Tarde">Tarde</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="situacion">SITUACION</label>
+                <select id="situacion">
+                    <option value="Pendiente">Pendiente</option>
+                    <option value="Atendido">Atendido</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="desembolso">ESTADO DESEMBOLSO</label>
+                <select id="desembolso">
+                    <option value="-">-</option>
+                    <option value="Sin Desembolsar">Sin Desembolsar</option>
+                    <option value="Desembolsado">Desembolsado</option>
+                </select>
+            </div>
+            
+            <div class="action-buttons" style="margin-top: 15px;">
+                <button type="submit" id="btn-save" class="btn btn-primary" style="flex: 1;">Guardar Cliente</button>
+                <button type="button" id="btn-save-and-add" class="btn" style="flex: 1; background-color: #607d8b; color: white;">Guardar y Agregar Otro</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // API
+    const API_URL = 'https://script.google.com/macros/s/AKfycby1W5piXtRC8Xhz7_CqVjxPdHWQ-R1jtPysustuOFItFhMi1p8kZSmBCj4BN7KzmsEd/exec';
+
+    // State
+    let clients = [];
+    
+    // DOM Elements
+    const loadingIndicator = document.getElementById('loading-indicator');
+    const tbody = document.getElementById('clients-tbody');
+    const emptyState = document.getElementById('empty-state');
+    const searchInput = document.getElementById('search-input');
+    const statusFilter = document.getElementById('status-filter');
+    
+    const modal = document.getElementById('client-modal');
+    const btnAdd = document.getElementById('btn-add-client');
+    const btnExport = document.getElementById('btn-export-excel');
+    const btnClearAll = document.getElementById('btn-clear-all');
+    const closeModal = document.getElementById('close-modal');
+    const clientForm = document.getElementById('client-form');
+    const modalTitle = document.getElementById('modal-title');
+    
+    // Form Inputs
+    const idInput = document.getElementById('client-id');
+    const clienteInput = document.getElementById('cliente');
+    const dniInput = document.getElementById('dni');
+    const telefonoInput = document.getElementById('telefono');
+    const productoInput = document.getElementById('producto');
+    const montoInput = document.getElementById('monto');
+    const lugarInput = document.getElementById('lugar');
+    const fechaInput = document.getElementById('fecha');
+    const turnoInput = document.getElementById('turno');
+    const situacionInput = document.getElementById('situacion');
+    const desembolsoInput = document.getElementById('desembolso');
+
+    // Init
+    async function initData() {
+        loadingIndicator.style.display = 'block';
+        loadingIndicator.textContent = 'Cargando datos desde Google Sheets...';
+        
+        try {
+            const response = await fetch(API_URL);
+            if(response.ok) {
+                const data = await response.json();
+                clients = data;
+                localStorage.setItem('agrobanco_manual_clients', JSON.stringify(clients)); // Backup local
+            } else {
+                throw new Error('Network error');
+            }
+        } catch (error) {
+            console.error('Error fetching data:', error);
+            // Fallback a local
+            const stored = localStorage.getItem('agrobanco_manual_clients');
+            if (stored) clients = JSON.parse(stored);
+            alert("No se pudo conectar a Google Sheets. Usando datos locales temporales.");
+        }
+        
+        loadingIndicator.style.display = 'none';
+        renderTable();
+    }
+    
+    initData();
+
+    // Event Listeners
+    btnAdd.addEventListener('click', () => {
+        openModal();
+    });
+
+    closeModal.addEventListener('click', () => {
+        modal.style.display = 'none';
+    });
+
+    window.addEventListener('click', (e) => {
+        if (e.target === modal) modal.style.display = 'none';
+    });
+
+    btnExport.addEventListener('click', () => {
+        if (clients.length === 0) {
+            alert('No hay clientes para exportar.');
+            return;
+        }
+
+        if (typeof XLSX === 'undefined') {
+            alert('La herramienta para generar el Excel no está cargada correctamente.');
+            return;
+        }
+
+        // Preparar datos para Excel
+        const dataToExport = clients.map(c => ({
+            'CLIENTE': c.cliente,
+            'DNI': c.dni !== '-' ? c.dni : '',
+            'N° DE TELEFONO': c.telefono !== '-' ? c.telefono : '',
+            'PRODUCTO': c.producto !== '-' ? c.producto : '',
+            'MONTO': c.monto !== '-' ? c.monto : '',
+            'LUGAR DE VISITA': c.lugar !== '-' && c.lugar ? c.lugar : '',
+            'FECHA DE VISITA': c.fecha !== '-' ? formatDate(c.fecha) : '',
+            'TURNO': c.turno !== '-' && c.turno ? c.turno : '',
+            'SITUACION': c.situacion,
+            'ESTADO DESEMBOLSO': c.desembolso !== '-' && c.desembolso ? c.desembolso : ''
+        }));
+
+        // Crear hoja de cálculo y libro
+        const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Visitas Programadas');
+
+        // Descargar archivo
+        const dateStr = new Date().toISOString().split('T')[0];
+        XLSX.writeFile(workbook, `Visitas_Programadas_${dateStr}.xlsx`);
+    });
+
+    searchInput.addEventListener('input', renderTable);
+    statusFilter.addEventListener('change', renderTable);
+
+    clientForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        saveClientData();
+        modal.style.display = 'none';
+    });
+    
+    // Botón Guardar y agregar otro
+    const btnSaveAndAdd = document.getElementById('btn-save-and-add');
+    if (btnSaveAndAdd) {
+        btnSaveAndAdd.addEventListener('click', () => {
+            if (!clienteInput.value.trim()) {
+                alert('Por favor ingresa al menos el nombre del cliente.');
+                clienteInput.focus();
+                return;
+            }
+            saveClientData();
+            // Reset for next entry
+            clientForm.reset();
+            idInput.value = '';
+            turnoInput.value = '-';
+            situacionInput.value = 'Pendiente';
+            desembolsoInput.value = '-';
+            clienteInput.focus();
+        });
+    }
+    
+    function saveClientData() {
+        const clientData = {
+            cliente: clienteInput.value.trim(),
+            dni: dniInput.value.trim() || '-',
+            telefono: telefonoInput.value.trim() || '-',
+            producto: productoInput.value.trim() || '-',
+            monto: montoInput.value.trim() || '-',
+            lugar: lugarInput.value.trim() || '-',
+            fecha: fechaInput.value || '-',
+            turno: turnoInput.value,
+            situacion: situacionInput.value,
+            desembolso: desembolsoInput.value
+        };
+
+        if (idInput.value) {
+            // Update
+            const idx = clients.findIndex(c => c.id === idInput.value);
+            if (idx !== -1) {
+                clients[idx] = { ...clients[idx], ...clientData };
+            }
+        } else {
+            // Create
+            clientData.id = 'c_' + Date.now();
+            clients.push(clientData);
+        }
+
+        saveAndRender();
+    }
+
+    btnClearAll.addEventListener('click', () => {
+        if (clients.length === 0) return;
+        if (confirm('¿Estás seguro de borrar todos los clientes? Esta acción no se puede deshacer.')) {
+            clients = [];
+            saveAndRender();
+        }
+    });
+
+    // Functions
+    function renderTable() {
+        const term = searchInput.value.toLowerCase();
+        const status = statusFilter.value;
+
+        // Actualizar lista de lugares dinámicos
+        const lugaresList = document.getElementById('lugares-list');
+        if (lugaresList) {
+            const uniqueLugares = [...new Set(clients.map(c => c.lugar).filter(l => l && l !== '-'))];
+            lugaresList.innerHTML = uniqueLugares.map(lugar => `<option value="${lugar}"></option>`).join('');
+        }
+
+        const filtered = clients.filter(c => {
+            const matchesSearch = c.cliente.toLowerCase().includes(term) || c.dni.toLowerCase().includes(term);
+            const matchesStatus = status === 'all' || c.situacion === status;
+            return matchesSearch && matchesStatus;
+        });
+
+        tbody.innerHTML = '';
+
+        if (filtered.length === 0) {
+            emptyState.style.display = 'block';
+            emptyState.textContent = clients.length === 0 
+                ? 'No hay clientes registrados. Haz clic en "Agregar Cliente Manual" para empezar.'
+                : 'No se encontraron clientes con esos filtros.';
+        } else {
+            emptyState.style.display = 'none';
+            
+            filtered.forEach(c => {
+                const tr = document.createElement('tr');
+                
+                const statusClass = c.situacion === 'Atendido' ? 'status-attended' : 'status-pending';
+                const desembolsoBadge = (c.desembolso && c.desembolso !== '-') ? `<span style="font-size:11px; padding:2px 6px; background:#eee; border-radius:4px; display:block; margin-top:4px;">${c.desembolso}</span>` : '';
+                
+                tr.onclick = () => editClient(c.id);
+                
+                tr.innerHTML = `
+                    <td><strong>${c.cliente}</strong></td>
+                    <td>${c.dni}</td>
+                    <td>${c.telefono}</td>
+                    <td>${c.producto || '-'}</td>
+                    <td>${c.monto || '-'}</td>
+                    <td>${c.lugar || '-'}</td>
+                    <td>${c.fecha !== '-' ? formatDate(c.fecha) : 'Sin programar'}</td>
+                    <td>${c.turno !== '-' && c.turno ? c.turno : '-'}</td>
+                    <td><span class="status-badge ${statusClass}">${c.situacion}</span></td>
+                    <td>${c.desembolso !== '-' && c.desembolso ? c.desembolso : '-'}</td>
+                    <td class="action-buttons">
+                        <button class="btn btn-edit" onclick="event.stopPropagation(); editClient('${c.id}')">Editar</button>
+                        <button class="btn btn-delete" onclick="event.stopPropagation(); deleteClient('${c.id}')">Borrar</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+    }
+
+    function openModal(client = null) {
+        modal.style.display = 'flex';
+        if (client) {
+            modalTitle.textContent = 'Editar Cliente';
+            idInput.value = client.id;
+            clienteInput.value = client.cliente;
+            dniInput.value = client.dni === '-' ? '' : client.dni;
+            telefonoInput.value = client.telefono === '-' ? '' : client.telefono;
+            productoInput.value = client.producto === '-' || !client.producto ? '' : client.producto;
+            montoInput.value = client.monto === '-' || !client.monto ? '' : client.monto;
+            lugarInput.value = client.lugar === '-' || !client.lugar ? '' : client.lugar;
+            fechaInput.value = client.fecha === '-' ? '' : client.fecha;
+            turnoInput.value = client.turno || '-';
+            situacionInput.value = client.situacion;
+            desembolsoInput.value = client.desembolso || '-';
+        } else {
+            modalTitle.textContent = 'Agregar Nuevo Cliente';
+            clientForm.reset();
+            idInput.value = '';
+            turnoInput.value = '-';
+            situacionInput.value = 'Pendiente';
+            desembolsoInput.value = '-';
+        }
+        
+        // Foco automático en el primer campo
+        setTimeout(() => clienteInput.focus(), 100);
+    }
+
+    async function saveAndRender() {
+        // Update UI immediately
+        localStorage.setItem('agrobanco_manual_clients', JSON.stringify(clients));
+        renderTable();
+        
+        // Sync with cloud
+        loadingIndicator.style.display = 'block';
+        loadingIndicator.textContent = 'Guardando cambios en Google Sheets...';
+        
+        try {
+            await fetch(API_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'text/plain;charset=utf-8',
+                },
+                body: JSON.stringify({ clients: clients })
+            });
+        } catch (error) {
+            console.error('Error al guardar en la nube:', error);
+        }
+        
+        loadingIndicator.style.display = 'none';
+    }
+
+    function formatDate(dateStr) {
+        if (!dateStr) return '';
+        const parts = dateStr.split('-');
+        if (parts.length === 3) {
+            return `${parts[2]}/${parts[1]}/${parts[0]}`; // DD/MM/YYYY
+        }
+        return dateStr;
+    }
+
+    // Expose functions to global scope for onclick handlers
+    window.editClient = function(id) {
+        const client = clients.find(c => c.id === id);
+        if (client) openModal(client);
+    };
+
+    window.deleteClient = function(id) {
+        if (confirm('¿Eliminar este cliente?')) {
+            clients = clients.filter(c => c.id !== id);
+            saveAndRender();
+        }
+    };
+});
+</script>
+
+</body>
+</html>
