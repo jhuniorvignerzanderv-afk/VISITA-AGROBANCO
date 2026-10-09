@@ -560,12 +560,12 @@
     </div>
 </div>
 
-<!-- MODAL PARA GESTIONAR REZAGADOS -->
+<!-- MODAL PARA GESTIONAR REZAGADOS / REPROGRAMACIONES -->
 <div id="overdue-modal" class="modal">
     <div class="modal-content" style="max-width: 600px;">
         <span id="close-overdue-modal" class="close">&times;</span>
-        <h2 style="color: #c62828; margin-bottom: 15px;">⚠️ Clientes No Atendidos</h2>
-        <p style="font-size: 14px; margin-bottom: 15px; color: #555;">Los siguientes clientes quedaron pendientes de días anteriores. ¿Para cuándo deseas reprogramarlos?</p>
+        <h2 id="overdue-modal-title" style="color: #c62828; margin-bottom: 15px;">⚠️ Clientes No Atendidos</h2>
+        <p id="overdue-modal-desc" style="font-size: 14px; margin-bottom: 15px; color: #555;">Los siguientes clientes quedaron pendientes de días anteriores. ¿Para cuándo deseas reprogramarlos?</p>
         
         <div id="overdue-list-container" style="max-height: 400px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; border-radius: 4px; margin-bottom: 15px;">
             <!-- Contenido generado dinámicamente -->
@@ -666,7 +666,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (cDate < todayD) {
                     rolledOverNames.push(c); // Guardamos el objeto completo para gestionarlos
                 } else if (c.fecha === localTodayStr) {
-                    scheduledTodayNames.push(c.cliente);
+                    scheduledTodayNames.push(c); // Guardamos el objeto completo
                 }
             }
         });
@@ -953,26 +953,39 @@ document.addEventListener('DOMContentLoaded', () => {
         const globalAlert = document.getElementById('global-alert');
         if (globalAlert && window.rolloverData) {
             const rolled = window.rolloverData.rolled; // array of full client objects
-            const todaySch = window.rolloverData.today;
+            const todaySch = window.rolloverData.today; // array of full client objects
             
             if (rolled.length > 0 || todaySch.length > 0) {
                 globalAlert.style.display = 'block';
                 let html = '';
                 if (rolled.length > 0) {
                     html += `<div style="margin-bottom: 8px;"><strong>⚠️ VISITAS ATRASADAS (REZAGADAS):</strong><br>Tienes <span style="color: #c62828; font-weight: bold;">${rolled.length} cliente(s)</span> de días anteriores que no atendiste.</div>`;
-                    html += `<button id="btn-open-reschedule" style="background-color: #c62828; color: white; border: none; padding: 6px 12px; border-radius: 4px; font-weight: bold; cursor: pointer; margin-bottom: 10px;">📅 Reprogramar Estos Clientes</button>`;
+                    html += `<button id="btn-open-reschedule" style="background-color: #c62828; color: white; border: none; padding: 6px 12px; border-radius: 4px; font-weight: bold; cursor: pointer; margin-bottom: 10px;">📅 Reprogramar Atrasados</button>`;
                 }
                 if (todaySch.length > 0) {
-                    html += `<div><strong>📅 PROGRAMADOS ORIGINALMENTE PARA HOY:</strong><br><span style="color: #1565c0;">${todaySch.join(', ')}</span>.</div>`;
-                }
-                if (rolled.length > 0) {
-                    html += `<div style="margin-top: 8px; font-size: 13px; color: #d32f2f;"><em>Sugerencia: Si los pasas para hoy, fíjate si se cruzan con los que ya tenías programados.</em></div>`;
+                    html += `<div style="margin-top: 10px; margin-bottom: 8px;"><strong>📅 PROGRAMADOS PARA HOY:</strong><br><span style="color: #1565c0;">${todaySch.map(c=>c.cliente).join(', ')}</span>.</div>`;
+                    html += `<button id="btn-reschedule-today" style="background-color: #1565c0; color: white; border: none; padding: 6px 12px; border-radius: 4px; font-weight: bold; cursor: pointer;">📆 Reprogramar Clientes de Hoy</button>`;
                 }
                 globalAlert.innerHTML = html;
                 
                 const btnReschedule = document.getElementById('btn-open-reschedule');
                 if (btnReschedule) {
-                    btnReschedule.onclick = () => openOverdueModal(rolled);
+                    btnReschedule.onclick = () => {
+                        document.getElementById('overdue-modal-title').textContent = "⚠️ Clientes No Atendidos";
+                        document.getElementById('overdue-modal-desc').textContent = "Los siguientes clientes quedaron pendientes de días anteriores. ¿Para cuándo deseas reprogramarlos?";
+                        document.getElementById('overdue-modal-title').style.color = "#c62828";
+                        openOverdueModal(rolled);
+                    }
+                }
+
+                const btnRescheduleToday = document.getElementById('btn-reschedule-today');
+                if (btnRescheduleToday) {
+                    btnRescheduleToday.onclick = () => {
+                        document.getElementById('overdue-modal-title').textContent = "📅 Reprogramar Clientes de Hoy";
+                        document.getElementById('overdue-modal-desc').textContent = "Selecciona la nueva fecha y turno para los clientes de hoy que deseas posponer.";
+                        document.getElementById('overdue-modal-title').style.color = "#1565c0";
+                        openOverdueModal(todaySch);
+                    }
                 }
             } else {
                 globalAlert.style.display = 'none';
@@ -1094,8 +1107,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div style="font-weight: bold; color: #1565c0;">${c.cliente}</div>
                 <div style="font-size: 12px; color: #666;">Originalmente para: ${formatDate(c.fecha)} | Turno: ${c.turno}</div>
                 <div style="display: flex; gap: 10px; align-items: center; margin-top: 5px;">
-                    <label style="font-size: 13px;">Nueva Fecha:</label>
-                    <input type="date" class="overdue-date-input" data-id="${c.id}" value="" style="padding: 5px; border: 1px solid #ccc; border-radius: 4px; flex: 1;">
+                    <div style="flex: 1;">
+                        <label style="font-size: 11px; display: block; color: #555;">Nueva Fecha:</label>
+                        <input type="date" class="overdue-date-input" data-id="${c.id}" value="" style="padding: 5px; border: 1px solid #ccc; border-radius: 4px; width: 100%;">
+                    </div>
+                    <div style="flex: 1;">
+                        <label style="font-size: 11px; display: block; color: #555;">Nuevo Turno:</label>
+                        <select class="overdue-turno-input" data-id="${c.id}" style="padding: 5px; border: 1px solid #ccc; border-radius: 4px; width: 100%;">
+                            <option value="">(Mantener actual)</option>
+                            <option value="Mañana">Mañana</option>
+                            <option value="Tarde">Tarde</option>
+                        </select>
+                    </div>
                 </div>
             `;
             overdueListContainer.appendChild(div);
@@ -1110,15 +1133,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (btnSaveOverdue) {
         btnSaveOverdue.addEventListener('click', () => {
-            const inputs = document.querySelectorAll('.overdue-date-input');
+            const dateInputs = document.querySelectorAll('.overdue-date-input');
+            const turnoInputs = document.querySelectorAll('.overdue-turno-input');
             let modified = false;
             
-            inputs.forEach(input => {
-                if (input.value) { // Solo actualizamos si eligió una fecha
+            dateInputs.forEach((input, index) => {
+                const newDate = input.value;
+                const newTurno = turnoInputs[index].value;
+                
+                if (newDate || newTurno) { 
                     const id = input.getAttribute('data-id');
                     const idx = clients.findIndex(c => c.id === id);
                     if (idx !== -1) {
-                        clients[idx].fecha = input.value;
+                        if (newDate) clients[idx].fecha = newDate;
+                        if (newTurno) clients[idx].turno = newTurno;
                         modified = true;
                     }
                 }
@@ -1128,7 +1156,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 overdueModal.style.display = 'none';
                 saveAndRender();
             } else {
-                alert('No seleccionaste ninguna fecha nueva. Los clientes seguirán como rezagados.');
+                alert('No seleccionaste ningún cambio. Los clientes se mantendrán igual.');
                 overdueModal.style.display = 'none';
             }
         });
