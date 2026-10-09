@@ -605,7 +605,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch(API_URL);
             if(response.ok) {
                 const data = await response.json();
-                clients = data;
+                clients = data.map(c => {
+                    if (c.fecha && c.fecha.includes('T')) {
+                        c.fecha = c.fecha.split('T')[0];
+                    }
+                    return c;
+                });
                 localStorage.setItem('agrobanco_manual_clients', JSON.stringify(clients)); // Backup local
             } else {
                 throw new Error('Network error');
