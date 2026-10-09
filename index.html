@@ -410,19 +410,26 @@
         </select>
     </div>
 
-    
-    <div style="display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap;">
-        <div style="flex: 1; min-width: 200px; background: #e3f2fd; padding: 15px; border-radius: 8px; border: 1px solid #90caf9;">
-            <h3 style="color: #1565c0; font-size: 14px; margin-bottom: 5px;">Total Desembolsado (Atendidos)</h3>
-            <div id="total-desembolsado" style="font-size: 24px; font-weight: bold; color: #0d47a1;">S/ 0.00</div>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+        <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; border: 1px solid #90caf9;">
+            <h3 style="color: #1565c0; font-size: 14px; margin-bottom: 5px;">Atendidos</h3>
+            <div id="count-atendidos" style="font-size: 16px; color: #555;">0 clientes</div>
+            <div id="total-atendidos" style="font-size: 22px; font-weight: bold; color: #0d47a1;">S/ 0.00</div>
         </div>
-        <div style="flex: 1; min-width: 200px; background: #fff3e0; padding: 15px; border-radius: 8px; border: 1px solid #ffcc80;">
-            <h3 style="color: #e65100; font-size: 14px; margin-bottom: 5px;">Proyección (Pendientes)</h3>
-            <div id="total-pendiente" style="font-size: 24px; font-weight: bold; color: #e65100;">S/ 0.00</div>
+        <div style="background: #fff3e0; padding: 15px; border-radius: 8px; border: 1px solid #ffcc80;">
+            <h3 style="color: #e65100; font-size: 14px; margin-bottom: 5px;">Pendientes (Por atender)</h3>
+            <div id="count-pendientes" style="font-size: 16px; color: #555;">0 clientes</div>
+            <div id="total-pendientes" style="font-size: 22px; font-weight: bold; color: #e65100;">S/ 0.00</div>
         </div>
-        <div style="flex: 1; min-width: 200px; background: #e8f5e9; padding: 15px; border-radius: 8px; border: 1px solid #81c784;">
-            <h3 style="color: #2e7d32; font-size: 14px; margin-bottom: 5px;">Total General (Suma)</h3>
-            <div id="total-general" style="font-size: 24px; font-weight: bold; color: #2e7d32;">S/ 0.00</div>
+        <div style="background: #e8f5e9; padding: 15px; border-radius: 8px; border: 1px solid #81c784;">
+            <h3 style="color: #2e7d32; font-size: 14px; margin-bottom: 5px;">Desembolsados</h3>
+            <div id="count-desembolsados" style="font-size: 16px; color: #555;">0 clientes</div>
+            <div id="total-desembolsados" style="font-size: 22px; font-weight: bold; color: #2e7d32;">S/ 0.00</div>
+        </div>
+        <div style="background: #fce4ec; padding: 15px; border-radius: 8px; border: 1px solid #f48fb1;">
+            <h3 style="color: #c2185b; font-size: 14px; margin-bottom: 5px;">Pendientes de Desembolsar</h3>
+            <div id="count-sindesembolsar" style="font-size: 16px; color: #555;">0 clientes</div>
+            <div id="total-sindesembolsar" style="font-size: 22px; font-weight: bold; color: #c2185b;">S/ 0.00</div>
         </div>
     </div>
 
@@ -827,36 +834,65 @@ document.addEventListener('DOMContentLoaded', () => {
         tbody.innerHTML = '';
 
         
-        let sumAtendidos = 0;
-        let sumPendientes = 0;
-        clients.forEach(c => {
+        let sumAtendidos = 0, countAtendidos = 0;
+        let sumPendientes = 0, countPendientes = 0;
+        let sumDesembolsados = 0, countDesembolsados = 0;
+        let sumSinDesembolsar = 0, countSinDesembolsar = 0;
+
+        filtered.forEach(c => {
             let mStr = String(c.monto || '0');
-            // Remove spaces and currency symbols
             mStr = mStr.replace(/[^0-9.,-]/g, '');
-            
-            // Handle European/Peruvian format vs US format
-            // If comma is the last non-digit character (e.g. 1.500,50), replace dots with nothing, comma with dot
             if (mStr.lastIndexOf(',') > mStr.lastIndexOf('.')) {
                 mStr = mStr.replace(/\./g, '').replace(',', '.');
             } else {
-                // US format (e.g. 1,500.50), remove commas
                 mStr = mStr.replace(/,/g, '');
             }
-            
             let m = parseFloat(mStr) || 0;
-            if (c.situacion === 'Atendido') sumAtendidos += m;
-            else sumPendientes += m;
+            
+            if (c.situacion === 'Atendido') {
+                sumAtendidos += m;
+                countAtendidos++;
+            } else {
+                sumPendientes += m;
+                countPendientes++;
+            }
+
+            if (c.desembolso === 'Desembolsado') {
+                sumDesembolsados += m;
+                countDesembolsados++;
+            } else if (c.desembolso === 'Sin Desembolsar') {
+                sumSinDesembolsar += m;
+                countSinDesembolsar++;
+            }
         });
         
-        const elDesembolsado = document.getElementById('total-desembolsado');
-        const elPendiente = document.getElementById('total-pendiente');
-        const elGeneral = document.getElementById('total-general');
+        const elTotalAtendidos = document.getElementById('total-atendidos');
+        const elCountAtendidos = document.getElementById('count-atendidos');
+        const elTotalPendientes = document.getElementById('total-pendientes');
+        const elCountPendientes = document.getElementById('count-pendientes');
+        const elTotalDesembolsados = document.getElementById('total-desembolsados');
+        const elCountDesembolsados = document.getElementById('count-desembolsados');
+        const elTotalSinDesembolsar = document.getElementById('total-sindesembolsar');
+        const elCountSinDesembolsar = document.getElementById('count-sindesembolsar');
         
-        if (elDesembolsado) elDesembolsado.textContent = 'S/ ' + sumAtendidos.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-        if (elPendiente) elPendiente.textContent = 'S/ ' + sumPendientes.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-        if (elGeneral) elGeneral.textContent = 'S/ ' + (sumAtendidos + sumPendientes).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        const formatMoney = (val) => 'S/ ' + val.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
-        if (elPendiente) elPendiente.textContent = 'S/ ' + sumPendientes.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        if (elTotalAtendidos) {
+            elTotalAtendidos.textContent = formatMoney(sumAtendidos);
+            elCountAtendidos.textContent = countAtendidos + (countAtendidos === 1 ? ' cliente' : ' clientes');
+        }
+        if (elTotalPendientes) {
+            elTotalPendientes.textContent = formatMoney(sumPendientes);
+            elCountPendientes.textContent = countPendientes + (countPendientes === 1 ? ' cliente' : ' clientes');
+        }
+        if (elTotalDesembolsados) {
+            elTotalDesembolsados.textContent = formatMoney(sumDesembolsados);
+            elCountDesembolsados.textContent = countDesembolsados + (countDesembolsados === 1 ? ' cliente' : ' clientes');
+        }
+        if (elTotalSinDesembolsar) {
+            elTotalSinDesembolsar.textContent = formatMoney(sumSinDesembolsar);
+            elCountSinDesembolsar.textContent = countSinDesembolsar + (countSinDesembolsar === 1 ? ' cliente' : ' clientes');
+        }
 
 
         if (filtered.length === 0) {
@@ -1015,21 +1051,38 @@ document.addEventListener('DOMContentLoaded', () => {
             const classManana = numManana >= 2 ? 'full' : '';
             const classTarde = numTarde >= 2 ? 'full' : '';
 
+            const visitsAtendidos = clients.filter(c => c.fecha === day.date && c.situacion === 'Atendido');
+            const numAtendidos = visitsAtendidos.length;
+            let sumAtendidosDay = 0;
+            visitsAtendidos.forEach(c => {
+                let mStr = String(c.monto || '0').replace(/[^0-9.,-]/g, '');
+                if (mStr.lastIndexOf(',') > mStr.lastIndexOf('.')) mStr = mStr.replace(/\./g, '').replace(',', '.');
+                else mStr = mStr.replace(/,/g, '');
+                sumAtendidosDay += parseFloat(mStr) || 0;
+            });
+
             const card = document.createElement('div');
             card.className = `calendar-card ${isToday ? 'today' : ''}`;
             card.innerHTML = `
                 <h3>${dayName} ${dayNum} ${monthName}</h3>
                 <div style="font-size: 12px; margin-bottom: 8px; color: #555; border-bottom: 1px solid #eee; padding-bottom: 5px; line-height: 1.4;">
-                    Total a visitar: <strong>${totalVisits}</strong> clientes<br>
-                    Monto proyectado: <strong style="color: #e65100;">S/ ${dailySum.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong>
+                    Pendientes: <strong>${totalVisits}</strong><br>
+                    Proyectado: <strong style="color: #e65100;">S/ ${dailySum.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong>
                 </div>
                 <div class="shift">
-                    <span>Mañana:</span>
+                    <span>Mañana (Pendientes):</span>
                     <span class="count ${classManana}">${numManana}</span>
                 </div>
                 <div class="shift">
-                    <span>Tarde:</span>
+                    <span>Tarde (Pendientes):</span>
                     <span class="count ${classTarde}">${numTarde}</span>
+                </div>
+                <div style="font-size: 12px; margin-top: 8px; color: #555; border-top: 1px solid #eee; padding-top: 5px; line-height: 1.4;">
+                    <div class="shift" style="margin-bottom: 2px;">
+                        <span>Ya Atendidos:</span>
+                        <span class="count" style="background: var(--success-color); color: white;">${numAtendidos}</span>
+                    </div>
+                    Monto Real: <strong style="color: var(--success-color);">S/ ${sumAtendidosDay.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong>
                 </div>
             `;
             dashboard.appendChild(card);
