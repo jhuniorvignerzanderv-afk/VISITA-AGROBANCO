@@ -399,6 +399,10 @@
         Sincronizando con Google Sheets...
     </div>
 
+    <div id="global-alert" style="display: none; background-color: #ffcdd2; color: #b71c1c; padding: 12px; margin-bottom: 20px; border-radius: 8px; border-left: 5px solid #d32f2f; font-size: 14px; line-height: 1.5;">
+        <!-- Mensaje de alerta -->
+    </div>
+
     <div class="controls">
         <input type="text" id="search-input" placeholder="Buscar por cliente o DNI...">
         <select id="status-filter">
@@ -407,26 +411,28 @@
             <option value="EstaSemana">Esta Semana</option>
             <option value="Atendido">Atendidos (Historial)</option>
             <option value="Pendiente">Todos los Pendientes</option>
+            <option value="Desembolsado">Desembolsados</option>
+            <option value="Sin Desembolsar">Pendientes de Desembolsar</option>
         </select>
     </div>
 
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
-        <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; border: 1px solid #90caf9;">
+        <div onclick="document.getElementById('status-filter').value='Atendido'; document.getElementById('search-input').dispatchEvent(new Event('input'));" style="background: #e3f2fd; padding: 15px; border-radius: 8px; border: 1px solid #90caf9; cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
             <h3 style="color: #1565c0; font-size: 14px; margin-bottom: 5px;">Atendidos</h3>
             <div id="count-atendidos" style="font-size: 16px; color: #555;">0 clientes</div>
             <div id="total-atendidos" style="font-size: 22px; font-weight: bold; color: #0d47a1;">S/ 0.00</div>
         </div>
-        <div style="background: #fff3e0; padding: 15px; border-radius: 8px; border: 1px solid #ffcc80;">
+        <div onclick="document.getElementById('status-filter').value='Pendiente'; document.getElementById('search-input').dispatchEvent(new Event('input'));" style="background: #fff3e0; padding: 15px; border-radius: 8px; border: 1px solid #ffcc80; cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
             <h3 style="color: #e65100; font-size: 14px; margin-bottom: 5px;">Pendientes (Por atender)</h3>
             <div id="count-pendientes" style="font-size: 16px; color: #555;">0 clientes</div>
             <div id="total-pendientes" style="font-size: 22px; font-weight: bold; color: #e65100;">S/ 0.00</div>
         </div>
-        <div style="background: #e8f5e9; padding: 15px; border-radius: 8px; border: 1px solid #81c784;">
+        <div onclick="document.getElementById('status-filter').value='Desembolsado'; document.getElementById('search-input').dispatchEvent(new Event('input'));" style="background: #e8f5e9; padding: 15px; border-radius: 8px; border: 1px solid #81c784; cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
             <h3 style="color: #2e7d32; font-size: 14px; margin-bottom: 5px;">Desembolsados</h3>
             <div id="count-desembolsados" style="font-size: 16px; color: #555;">0 clientes</div>
             <div id="total-desembolsados" style="font-size: 22px; font-weight: bold; color: #2e7d32;">S/ 0.00</div>
         </div>
-        <div style="background: #fce4ec; padding: 15px; border-radius: 8px; border: 1px solid #f48fb1;">
+        <div onclick="document.getElementById('status-filter').value='Sin Desembolsar'; document.getElementById('search-input').dispatchEvent(new Event('input'));" style="background: #fce4ec; padding: 15px; border-radius: 8px; border: 1px solid #f48fb1; cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
             <h3 style="color: #c2185b; font-size: 14px; margin-bottom: 5px;">Pendientes de Desembolsar</h3>
             <div id="count-sindesembolsar" style="font-size: 16px; color: #555;">0 clientes</div>
             <div id="total-sindesembolsar" style="font-size: 22px; font-weight: bold; color: #c2185b;">S/ 0.00</div>
@@ -613,7 +619,39 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         loadingIndicator.style.display = 'none';
-        renderTable();
+
+        // AUTO-ROLLOVER: Pasar los pendientes atrasados a HOY
+        const todayD = new Date();
+        todayD.setHours(0,0,0,0);
+        const localTodayStr = todayD.getFullYear() + '-' + String(todayD.getMonth() + 1).padStart(2, '0') + '-' + String(todayD.getDate()).padStart(2, '0');
+        
+        let rolledOverNames = [];
+        let scheduledTodayNames = [];
+        let modified = false;
+
+        clients.forEach(c => {
+            if (c.situacion === 'Pendiente' && c.fecha && c.fecha !== '-') {
+                const cDate = new Date(c.fecha + 'T00:00:00');
+                if (cDate < todayD) {
+                    rolledOverNames.push(c.cliente);
+                    c.fecha = localTodayStr; // Actualiza la fecha a hoy
+                    modified = true;
+                } else if (c.fecha === localTodayStr) {
+                    scheduledTodayNames.push(c.cliente);
+                }
+            }
+        });
+
+        window.rolloverData = {
+            rolled: rolledOverNames,
+            today: scheduledTodayNames
+        };
+
+        if (modified) {
+            saveAndRender(); // Save to cloud and render
+        } else {
+            renderTable();
+        }
     }
     
     initData();
@@ -814,6 +852,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (status === 'all') matchesStatus = c.situacion !== 'Atendido';
             else if (status === 'Atrasados') matchesStatus = isOverdue;
             else if (status === 'EstaSemana') matchesStatus = isThisWeek;
+            else if (status === 'Desembolsado') matchesStatus = c.desembolso === 'Desembolsado';
+            else if (status === 'Sin Desembolsar') matchesStatus = c.desembolso === 'Sin Desembolsar';
             else matchesStatus = c.situacion === status;
             
             return matchesSearch && matchesStatus;
@@ -876,6 +916,29 @@ document.addEventListener('DOMContentLoaded', () => {
         const elCountSinDesembolsar = document.getElementById('count-sindesembolsar');
         
         const formatMoney = (val) => 'S/ ' + val.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
+        const globalAlert = document.getElementById('global-alert');
+        if (globalAlert && window.rolloverData) {
+            const rolled = window.rolloverData.rolled;
+            const todaySch = window.rolloverData.today;
+            
+            if (rolled.length > 0 || todaySch.length > 0) {
+                globalAlert.style.display = 'block';
+                let html = '';
+                if (rolled.length > 0) {
+                    html += `<div style="margin-bottom: 8px;"><strong>🔄 VISITAS REPROGRAMADAS AUTOMÁTICAMENTE A HOY:</strong><br>No lograste visitar a: <span style="color: #c62828;">${rolled.join(', ')}</span>. Sus visitas se pasaron para hoy de manera automática.</div>`;
+                }
+                if (todaySch.length > 0) {
+                    html += `<div><strong>📅 PROGRAMADOS ORIGINALMENTE PARA HOY:</strong><br><span style="color: #1565c0;">${todaySch.join(', ')}</span>.</div>`;
+                }
+                if (rolled.length > 0) {
+                    html += `<div style="margin-top: 8px; font-size: 13px; color: #d32f2f;"><em>⚠️ Tienes cruces de tiempos. Sugerencia: Comunícate con los clientes programados para hoy si necesitas posponerlos por falta de tiempo.</em></div>`;
+                }
+                globalAlert.innerHTML = html;
+            } else {
+                globalAlert.style.display = 'none';
+            }
+        }
 
         if (elTotalAtendidos) {
             elTotalAtendidos.textContent = formatMoney(sumAtendidos);
@@ -1031,15 +1094,16 @@ document.addEventListener('DOMContentLoaded', () => {
             let visits = clients.filter(c => c.fecha === day.date && c.situacion !== 'Atendido');
 
             // Mover los pendientes del pasado al día de hoy automáticamente
+            let overdueCount = 0;
             if (isToday) {
                 const overdue = clients.filter(c => {
                     if (c.situacion !== 'Pendiente' || !c.fecha || c.fecha === '-') return false;
                     const cDate = new Date(c.fecha + 'T00:00:00');
                     return cDate < today;
                 });
+                overdueCount = overdue.length;
                 visits = visits.concat(overdue);
             } else if (day.obj < today) {
-                // Si el día ya pasó, los pendientes se movieron a hoy, así que aquí no hay pendientes
                 visits = [];
             }
 
@@ -1047,11 +1111,8 @@ document.addEventListener('DOMContentLoaded', () => {
             let dailySum = 0;
             visits.forEach(c => {
                 let mStr = String(c.monto || '0').replace(/[^0-9.,-]/g, '');
-                if (mStr.lastIndexOf(',') > mStr.lastIndexOf('.')) {
-                    mStr = mStr.replace(/\./g, '').replace(',', '.');
-                } else {
-                    mStr = mStr.replace(/,/g, '');
-                }
+                if (mStr.lastIndexOf(',') > mStr.lastIndexOf('.')) mStr = mStr.replace(/\./g, '').replace(',', '.');
+                else mStr = mStr.replace(/,/g, '');
                 dailySum += parseFloat(mStr) || 0;
             });
             const numManana = visits.filter(c => c.turno === 'Mañana').length;
@@ -1064,6 +1125,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const classManana = numManana >= 2 ? 'full' : '';
             const classTarde = numTarde >= 2 ? 'full' : '';
+
+            let overdueWarning = '';
+            if (isToday && overdueCount > 0) {
+                overdueWarning = `<div style="background: #ffebee; color: #c62828; padding: 4px; border-radius: 4px; font-size: 11px; margin-bottom: 5px; text-align: center; font-weight: bold;">⚠️ Tienes ${overdueCount} cliente(s) atrasado(s) de días anteriores</div>`;
+            }
 
             const visitsAtendidos = clients.filter(c => c.fecha === day.date && c.situacion === 'Atendido');
             const numAtendidos = visitsAtendidos.length;
@@ -1079,6 +1145,7 @@ document.addEventListener('DOMContentLoaded', () => {
             card.className = `calendar-card ${isToday ? 'today' : ''}`;
             card.innerHTML = `
                 <h3>${dayName} ${dayNum} ${monthName}</h3>
+                ${overdueWarning}
                 <div style="font-size: 12px; margin-bottom: 8px; color: #555; border-bottom: 1px solid #eee; padding-bottom: 5px; line-height: 1.4;">
                     Pendientes: <strong>${totalVisits}</strong><br>
                     Proyectado: <strong style="color: #e65100;">S/ ${dailySum.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong>
