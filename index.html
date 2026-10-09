@@ -317,6 +317,34 @@
         }
     
         @media (max-width: 768px) {
+            header {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 15px;
+                padding-bottom: 15px;
+            }
+            header div {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+            }
+            header div button {
+                width: 100%;
+                padding: 12px;
+                font-size: 16px;
+            }
+            .controls {
+                flex-direction: column;
+            }
+            #quick-actions-container {
+                flex-direction: column;
+            }
+            #quick-actions-container button {
+                width: 100%;
+                justify-content: center;
+                padding: 12px;
+            }
+            
             table, thead, tbody, th, td, tr { 
                 display: block; 
             }
@@ -336,20 +364,38 @@
                 border: none;
                 border-bottom: 1px solid #eee; 
                 position: relative;
-                padding-left: 50%; 
+                padding-left: 45%; 
                 text-align: right;
                 min-height: 40px;
+                display: flex;
+                justify-content: flex-end;
+                align-items: center;
             }
             td:before { 
                 position: absolute;
-                top: 12px;
+                top: 50%;
+                transform: translateY(-50%);
                 left: 15px;
-                width: 45%; 
+                width: 40%; 
                 padding-right: 10px; 
                 white-space: nowrap;
                 text-align: left;
                 font-weight: bold;
                 color: var(--primary-dark);
+            }
+            .modal-content {
+                width: 95%;
+                margin: 10px auto;
+                padding: 15px;
+            }
+            .action-buttons {
+                flex-direction: column;
+                gap: 10px;
+            }
+            .action-buttons button {
+                width: 100%;
+                padding: 12px;
+                font-size: 16px;
             }
             /* Labeling the data */
             td:nth-of-type(1):before { content: "CLIENTE"; }
@@ -362,7 +408,21 @@
             td:nth-of-type(8):before { content: "TURNO"; }
             td:nth-of-type(9):before { content: "SITUACIÓN"; }
             td:nth-of-type(10):before { content: "ESTADO DESEMBOLSO"; }
-            td:nth-of-type(11):before { content: "ACCIONES"; }
+            td:nth-of-type(11):before { content: "ACCIONES"; top: 20px; }
+            td:nth-of-type(11) {
+                flex-direction: column;
+                align-items: flex-end;
+                gap: 8px;
+                padding-top: 15px;
+                padding-bottom: 15px;
+            }
+            td:nth-of-type(11) .btn {
+                width: 100%;
+                max-width: 150px;
+                padding: 10px;
+                text-align: center;
+                display: block;
+            }
         }
 
     </style>
@@ -381,10 +441,10 @@
 
     <div style="background: #e8f5e9; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #4caf50;">
         <h3 style="color: var(--primary-dark); font-size: 16px; margin-bottom: 10px;">Llamar / WhatsApp Rápido</h3>
-        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+        <div id="quick-actions-container" style="display: flex; gap: 10px; flex-wrap: wrap;">
             <input type="tel" id="quick-phone" placeholder="Ingresa un número (ej: 999123456)" style="flex: 1; min-width: 200px; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px;">
-            <button onclick="quickCall()" class="btn btn-primary" style="display: flex; align-items: center; gap: 5px;">📞 Llamar</button>
-            <button onclick="quickWhatsApp()" class="btn" style="background-color: #25D366; color: white; display: flex; align-items: center; gap: 5px;">🟢 WhatsApp</button>
+            <button onclick="quickCall()" class="btn btn-primary" style="display: flex; align-items: center; justify-content: center; gap: 5px;">📞 Llamar</button>
+            <button onclick="quickWhatsApp()" class="btn" style="background-color: #25D366; color: white; display: flex; align-items: center; justify-content: center; gap: 5px;">🟢 WhatsApp</button>
         </div>
         <script>
             function getCleanPhone() {
