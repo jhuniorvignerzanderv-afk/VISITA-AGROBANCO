@@ -417,22 +417,22 @@
     </div>
 
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
-        <div onclick="document.getElementById('status-filter').value='Atendido'; document.getElementById('search-input').dispatchEvent(new Event('input'));" style="background: #e3f2fd; padding: 15px; border-radius: 8px; border: 1px solid #90caf9; cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+        <div onclick="if(window.clearCalendarFilter) clearCalendarFilter(); document.getElementById('status-filter').value='Atendido'; document.getElementById('search-input').dispatchEvent(new Event('input'));" style="background: #e3f2fd; padding: 15px; border-radius: 8px; border: 1px solid #90caf9; cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
             <h3 style="color: #1565c0; font-size: 14px; margin-bottom: 5px;">Atendidos</h3>
             <div id="count-atendidos" style="font-size: 16px; color: #555;">0 clientes</div>
             <div id="total-atendidos" style="font-size: 22px; font-weight: bold; color: #0d47a1;">S/ 0.00</div>
         </div>
-        <div onclick="document.getElementById('status-filter').value='Pendiente'; document.getElementById('search-input').dispatchEvent(new Event('input'));" style="background: #fff3e0; padding: 15px; border-radius: 8px; border: 1px solid #ffcc80; cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+        <div onclick="if(window.clearCalendarFilter) clearCalendarFilter(); document.getElementById('status-filter').value='Pendiente'; document.getElementById('search-input').dispatchEvent(new Event('input'));" style="background: #fff3e0; padding: 15px; border-radius: 8px; border: 1px solid #ffcc80; cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
             <h3 style="color: #e65100; font-size: 14px; margin-bottom: 5px;">Pendientes (Por atender)</h3>
             <div id="count-pendientes" style="font-size: 16px; color: #555;">0 clientes</div>
             <div id="total-pendientes" style="font-size: 22px; font-weight: bold; color: #e65100;">S/ 0.00</div>
         </div>
-        <div onclick="document.getElementById('status-filter').value='Desembolsado'; document.getElementById('search-input').dispatchEvent(new Event('input'));" style="background: #e8f5e9; padding: 15px; border-radius: 8px; border: 1px solid #81c784; cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+        <div onclick="if(window.clearCalendarFilter) clearCalendarFilter(); document.getElementById('status-filter').value='Desembolsado'; document.getElementById('search-input').dispatchEvent(new Event('input'));" style="background: #e8f5e9; padding: 15px; border-radius: 8px; border: 1px solid #81c784; cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
             <h3 style="color: #2e7d32; font-size: 14px; margin-bottom: 5px;">Desembolsados</h3>
             <div id="count-desembolsados" style="font-size: 16px; color: #555;">0 clientes</div>
             <div id="total-desembolsados" style="font-size: 22px; font-weight: bold; color: #2e7d32;">S/ 0.00</div>
         </div>
-        <div onclick="document.getElementById('status-filter').value='Sin Desembolsar'; document.getElementById('search-input').dispatchEvent(new Event('input'));" style="background: #fce4ec; padding: 15px; border-radius: 8px; border: 1px solid #f48fb1; cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+        <div onclick="if(window.clearCalendarFilter) clearCalendarFilter(); document.getElementById('status-filter').value='Sin Desembolsar'; document.getElementById('search-input').dispatchEvent(new Event('input'));" style="background: #fce4ec; padding: 15px; border-radius: 8px; border: 1px solid #f48fb1; cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
             <h3 style="color: #c2185b; font-size: 14px; margin-bottom: 5px;">Pendientes de Desembolsar</h3>
             <div id="count-sindesembolsar" style="font-size: 16px; color: #555;">0 clientes</div>
             <div id="total-sindesembolsar" style="font-size: 22px; font-weight: bold; color: #c2185b;">S/ 0.00</div>
@@ -443,6 +443,11 @@
     <h2 style="font-size: 16px; color: var(--primary-dark); margin-bottom: 5px;">Calendario Semanal (Lunes a Domingo)</h2>
     <div class="calendar-dashboard" id="calendar-dashboard">
         <!-- Tarjetas de calendario generadas por JS -->
+    </div>
+
+    <div id="calendar-filter-indicator" style="display: none; background-color: #fff3e0; color: #e65100; padding: 12px; border-radius: 8px; border: 1px solid #ffcc80; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+        <div><strong>🔍 Filtrando desde el Calendario:</strong> Mostrando clientes para <span id="cf-details" style="font-weight: bold; color: #c2185b;">---</span></div>
+        <button onclick="clearCalendarFilter()" style="background: #e65100; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-weight: bold;">✕ Quitar Filtro</button>
     </div>
 
     <div style="overflow-x: auto;">
@@ -584,6 +589,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // State
     let clients = [];
+    window.calendarFilter = null;
+    
+    window.setCalendarFilter = function(date, type, textDesc) {
+        window.calendarFilter = { date, type, textDesc };
+        document.getElementById('status-filter').value = 'all'; // Reset general filter
+        document.getElementById('search-input').value = '';     // Clear search
+        document.getElementById('calendar-filter-indicator').style.display = 'flex';
+        document.getElementById('cf-details').textContent = `${textDesc} (${type === 'Atendido' ? 'Ya Atendidos' : type})`;
+        renderTable();
+        // Scroll to table
+        document.querySelector('.table-container') || document.querySelector('table').scrollIntoView({ behavior: 'smooth' });
+    };
+
+    window.clearCalendarFilter = function() {
+        window.calendarFilter = null;
+        document.getElementById('calendar-filter-indicator').style.display = 'none';
+        renderTable();
+    };
     
     // DOM Elements
     const loadingIndicator = document.getElementById('loading-indicator');
@@ -766,8 +789,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    searchInput.addEventListener('input', renderTable);
-    statusFilter.addEventListener('change', renderTable);
+    searchInput.addEventListener('input', () => {
+        if (window.clearCalendarFilter && window.calendarFilter) window.clearCalendarFilter();
+        else renderTable();
+    });
+    statusFilter.addEventListener('change', () => {
+        if (window.clearCalendarFilter && window.calendarFilter) window.clearCalendarFilter();
+        else renderTable();
+    });
 
     clientForm.addEventListener('submit', (e) => {
         e.preventDefault();
@@ -884,8 +913,25 @@ document.addEventListener('DOMContentLoaded', () => {
             else if (status === 'Sin Desembolsar') matchesStatus = des === 'sin desembolsar';
             else matchesStatus = stat === status.toLowerCase();
             
-            return matchesSearch && matchesStatus;
+            return window.calendarFilter ? true : (matchesSearch && matchesStatus);
         });
+
+        if (window.calendarFilter) {
+            filtered = filtered.filter(c => {
+                const stat = c.situacion ? c.situacion.trim().toLowerCase() : '';
+                const des = c.desembolso ? c.desembolso.trim().toLowerCase() : '';
+                const isReallyAtendido = (stat === 'atendido' || des === 'desembolsado');
+                
+                if (c.fecha !== window.calendarFilter.date) return false;
+                
+                if (window.calendarFilter.type === 'Atendido') {
+                    return isReallyAtendido;
+                } else {
+                    // Mañana o Tarde (Pendientes)
+                    return !isReallyAtendido && c.turno === window.calendarFilter.type;
+                }
+            });
+        }
 
         filtered.sort((a, b) => {
             if (a.situacion === 'Atendido' && b.situacion !== 'Atendido') return 1;
@@ -1286,16 +1332,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     Pendientes: <strong>${totalVisits}</strong><br>
                     Proyectado: <strong style="color: #e65100;">S/ ${dailySum.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong>
                 </div>
-                <div class="shift">
+                <div class="shift" style="cursor: pointer;" onclick="setCalendarFilter('${day.date}', 'Mañana', '${dayName} ${dayNum}')" title="Haz clic para ver los pendientes de la Mañana">
                     <span>Mañana (Pendientes):</span>
                     <span class="count ${classManana}">${numManana}</span>
                 </div>
-                <div class="shift">
+                <div class="shift" style="cursor: pointer;" onclick="setCalendarFilter('${day.date}', 'Tarde', '${dayName} ${dayNum}')" title="Haz clic para ver los pendientes de la Tarde">
                     <span>Tarde (Pendientes):</span>
                     <span class="count ${classTarde}">${numTarde}</span>
                 </div>
                 <div style="font-size: 12px; margin-top: 8px; color: #555; border-top: 1px solid #eee; padding-top: 5px; line-height: 1.4;">
-                    <div class="shift" style="margin-bottom: 2px;">
+                    <div class="shift" style="margin-bottom: 2px; cursor: pointer;" onclick="setCalendarFilter('${day.date}', 'Atendido', '${dayName} ${dayNum}')" title="Haz clic para ver los ya atendidos">
                         <span>Ya Atendidos:</span>
                         <span class="count" style="background: var(--success-color); color: white;">${numAtendidos}</span>
                     </div>
