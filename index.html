@@ -630,7 +630,13 @@ document.addEventListener('DOMContentLoaded', () => {
         let modified = false;
 
         clients.forEach(c => {
-            if (c.situacion === 'Pendiente' && c.fecha && c.fecha !== '-') {
+            const stat = c.situacion ? c.situacion.trim().toLowerCase() : '';
+            const des = c.desembolso ? c.desembolso.trim().toLowerCase() : '';
+            
+            // Si está desembolsado, lógicamente ya fue atendido, así que no se reprograma
+            const isReallyAtendido = (stat === 'atendido' || des === 'desembolsado');
+
+            if (!isReallyAtendido && stat === 'pendiente' && c.fecha && c.fecha !== '-') {
                 const cDate = new Date(c.fecha + 'T00:00:00');
                 if (cDate < todayD) {
                     rolledOverNames.push(c.cliente);
@@ -848,13 +854,16 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             c._isOverdue = isOverdue;
             
+            const stat = c.situacion ? c.situacion.trim().toLowerCase() : '';
+            const des = c.desembolso ? c.desembolso.trim().toLowerCase() : '';
+
             let matchesStatus = true;
-            if (status === 'all') matchesStatus = c.situacion !== 'Atendido';
+            if (status === 'all') matchesStatus = stat !== 'atendido';
             else if (status === 'Atrasados') matchesStatus = isOverdue;
             else if (status === 'EstaSemana') matchesStatus = isThisWeek;
-            else if (status === 'Desembolsado') matchesStatus = c.desembolso === 'Desembolsado';
-            else if (status === 'Sin Desembolsar') matchesStatus = c.desembolso === 'Sin Desembolsar';
-            else matchesStatus = c.situacion === status;
+            else if (status === 'Desembolsado') matchesStatus = des === 'desembolsado';
+            else if (status === 'Sin Desembolsar') matchesStatus = des === 'sin desembolsar';
+            else matchesStatus = stat === status.toLowerCase();
             
             return matchesSearch && matchesStatus;
         });
@@ -889,7 +898,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             let m = parseFloat(mStr) || 0;
             
-            if (c.situacion === 'Atendido') {
+            const stat = c.situacion ? c.situacion.trim().toLowerCase() : '';
+            const des = c.desembolso ? c.desembolso.trim().toLowerCase() : '';
+
+            const isReallyAtendido = (stat === 'atendido' || des === 'desembolsado');
+
+            if (isReallyAtendido) {
                 sumAtendidos += m;
                 countAtendidos++;
             } else {
@@ -897,10 +911,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 countPendientes++;
             }
 
-            if (c.desembolso === 'Desembolsado') {
+            if (des === 'desembolsado') {
                 sumDesembolsados += m;
                 countDesembolsados++;
-            } else if (c.desembolso === 'Sin Desembolsar') {
+            } else if (des === 'sin desembolsar') {
                 sumSinDesembolsar += m;
                 countSinDesembolsar++;
             }
@@ -1091,13 +1105,22 @@ document.addEventListener('DOMContentLoaded', () => {
             const localTodayStr = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
             const isToday = day.date === localTodayStr;
 
-            let visits = clients.filter(c => c.fecha === day.date && c.situacion !== 'Atendido');
+            let visits = clients.filter(c => {
+                const stat = c.situacion ? c.situacion.trim().toLowerCase() : '';
+                const des = c.desembolso ? c.desembolso.trim().toLowerCase() : '';
+                const isReallyAtendido = (stat === 'atendido' || des === 'desembolsado');
+                return c.fecha === day.date && !isReallyAtendido;
+            });
 
             // Mover los pendientes del pasado al día de hoy automáticamente
             let overdueCount = 0;
             if (isToday) {
                 const overdue = clients.filter(c => {
-                    if (c.situacion !== 'Pendiente' || !c.fecha || c.fecha === '-') return false;
+                    const stat = c.situacion ? c.situacion.trim().toLowerCase() : '';
+                    const des = c.desembolso ? c.desembolso.trim().toLowerCase() : '';
+                    const isReallyAtendido = (stat === 'atendido' || des === 'desembolsado');
+
+                    if (isReallyAtendido || stat !== 'pendiente' || !c.fecha || c.fecha === '-') return false;
                     const cDate = new Date(c.fecha + 'T00:00:00');
                     return cDate < today;
                 });
@@ -1131,7 +1154,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 overdueWarning = `<div style="background: #ffebee; color: #c62828; padding: 4px; border-radius: 4px; font-size: 11px; margin-bottom: 5px; text-align: center; font-weight: bold;">⚠️ Tienes ${overdueCount} cliente(s) atrasado(s) de días anteriores</div>`;
             }
 
-            const visitsAtendidos = clients.filter(c => c.fecha === day.date && c.situacion === 'Atendido');
+            const visitsAtendidos = clients.filter(c => {
+                const stat = c.situacion ? c.situacion.trim().toLowerCase() : '';
+                const des = c.desembolso ? c.desembolso.trim().toLowerCase() : '';
+                return c.fecha === day.date && (stat === 'atendido' || des === 'desembolsado');
+            });
             const numAtendidos = visitsAtendidos.length;
             let sumAtendidosDay = 0;
             visitsAtendidos.forEach(c => {
