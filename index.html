@@ -161,6 +161,15 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            padding: 4px; border-radius: 4px; transition: background 0.2s, transform 0.1s;
+            user-select: none;
+        }
+        .calendar-card .shift:active {
+            background-color: #e0e0e0;
+            transform: scale(0.98);
+        }
+        .calendar-card .shift:hover {
+            background-color: #f5f5f5;
         }
 
         .calendar-card .shift span.count {
@@ -598,8 +607,11 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('calendar-filter-indicator').style.display = 'flex';
         document.getElementById('cf-details').textContent = `${textDesc} (${type === 'Atendido' ? 'Ya Atendidos' : type})`;
         renderTable();
-        // Scroll to table
-        document.querySelector('.table-container') || document.querySelector('table').scrollIntoView({ behavior: 'smooth' });
+        // Scroll to table safely
+        const tableEl = document.querySelector('.table-container') || document.querySelector('table');
+        if (tableEl) {
+            tableEl.scrollIntoView({ behavior: 'smooth' });
+        }
     };
 
     window.clearCalendarFilter = function() {
@@ -928,7 +940,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     return isReallyAtendido;
                 } else {
                     // Mañana o Tarde (Pendientes)
-                    return !isReallyAtendido && c.turno === window.calendarFilter.type;
+                    const t = c.turno ? c.turno.trim() : '';
+                    return !isReallyAtendido && t === window.calendarFilter.type;
                 }
             });
         }
