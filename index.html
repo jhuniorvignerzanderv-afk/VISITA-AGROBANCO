@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Programación de Visitas a Clientes</title>
+    <title>Programacion de Visitas (Actualizado)</title>
     <script src="xlsx.js"></script>
     <style>
         :root {
@@ -112,6 +112,10 @@
         }
         .status-pending { background-color: var(--pending-color); }
         .status-attended { background-color: var(--success-color); }
+        .status-overdue { background-color: var(--danger-color); }
+
+        tr.row-overdue { background-color: #ffebee; }
+        tr.row-overdue:hover { background-color: #ffcdd2; }
 
         .empty-state {
             text-align: center;
@@ -207,17 +211,20 @@
             left: 0; top: 0;
             width: 100%; height: 100%;
             background-color: rgba(0,0,0,0.5);
-            align-items: center;
-            justify-content: center;
+            overflow-y: auto; /* Permite scroll nativo */
+            padding: 20px;
         }
-        .modal-content {
+        .modal-content { pointer-events: auto !important; z-index: 999999 !important; 
             background-color: white;
+            z-index: 1001;
+            pointer-events: auto;
             padding: 25px;
             border-radius: 8px;
             width: 100%;
             max-width: 500px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.2);
             position: relative;
+            margin: 20px auto; /* Centrado horizontal, espacio libre arriba y abajo para scrollear */
         }
         .close {
             position: absolute;
@@ -287,12 +294,68 @@
             .container {
                 padding: 15px;
             }
-            .modal-content {
-                max-height: 90vh;
+            .modal {
+                align-items: flex-start;
+                padding-top: 20px;
+                padding-bottom: 20px;
                 overflow-y: auto;
+            }
+            .modal-content { pointer-events: auto !important; z-index: 999999 !important; 
+                max-height: none;
+                margin-bottom: 20px;
                 padding: 15px;
             }
         }
+    
+        @media (max-width: 768px) {
+            table, thead, tbody, th, td, tr { 
+                display: block; 
+            }
+            thead tr { 
+                position: absolute;
+                top: -9999px;
+                left: -9999px;
+            }
+            tr { 
+                border: 1px solid #ccc; 
+                margin-bottom: 15px; 
+                border-radius: 8px;
+                background: white;
+                box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            }
+            td { 
+                border: none;
+                border-bottom: 1px solid #eee; 
+                position: relative;
+                padding-left: 50%; 
+                text-align: right;
+                min-height: 40px;
+            }
+            td:before { 
+                position: absolute;
+                top: 12px;
+                left: 15px;
+                width: 45%; 
+                padding-right: 10px; 
+                white-space: nowrap;
+                text-align: left;
+                font-weight: bold;
+                color: var(--primary-dark);
+            }
+            /* Labeling the data */
+            td:nth-of-type(1):before { content: "CLIENTE"; }
+            td:nth-of-type(2):before { content: "DNI"; }
+            td:nth-of-type(3):before { content: "TELÉFONO"; }
+            td:nth-of-type(4):before { content: "PRODUCTO"; }
+            td:nth-of-type(5):before { content: "MONTO"; }
+            td:nth-of-type(6):before { content: "LUGAR"; }
+            td:nth-of-type(7):before { content: "FECHA"; }
+            td:nth-of-type(8):before { content: "TURNO"; }
+            td:nth-of-type(9):before { content: "SITUACIÓN"; }
+            td:nth-of-type(10):before { content: "ESTADO DESEMBOLSO"; }
+            td:nth-of-type(11):before { content: "ACCIONES"; }
+        }
+
     </style>
 </head>
 <body>
@@ -307,6 +370,31 @@
         </div>
     </header>
 
+    <div style="background: #e8f5e9; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #4caf50;">
+        <h3 style="color: var(--primary-dark); font-size: 16px; margin-bottom: 10px;">Llamar / WhatsApp Rápido</h3>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <input type="tel" id="quick-phone" placeholder="Ingresa un número (ej: 999123456)" style="flex: 1; min-width: 200px; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px;">
+            <button onclick="quickCall()" class="btn btn-primary" style="display: flex; align-items: center; gap: 5px;">📞 Llamar</button>
+            <button onclick="quickWhatsApp()" class="btn" style="background-color: #25D366; color: white; display: flex; align-items: center; gap: 5px;">🟢 WhatsApp</button>
+        </div>
+        <script>
+            function getCleanPhone() {
+                return document.getElementById('quick-phone').value.replace(/\s+/g, '');
+            }
+            function quickCall() {
+                const phone = getCleanPhone();
+                if (phone) window.location.href = 'tel:' + phone;
+                else alert('Por favor, ingresa un número de teléfono');
+            }
+            function quickWhatsApp() {
+                const phone = getCleanPhone();
+                if (phone) window.open('https://wa.me/51' + phone, '_blank');
+                else alert('Por favor, ingresa un número de teléfono');
+            }
+        </script>
+    </div>
+
+
     <div id="loading-indicator" style="display: none; text-align: center; padding: 10px; background-color: #e3f2fd; color: #1565c0; font-weight: bold; margin-bottom: 15px; border-radius: 4px;">
         Sincronizando con Google Sheets...
     </div>
@@ -314,10 +402,28 @@
     <div class="controls">
         <input type="text" id="search-input" placeholder="Buscar por cliente o DNI...">
         <select id="status-filter">
-            <option value="all">Todos los estados</option>
-            <option value="Pendiente">Pendiente</option>
-            <option value="Atendido">Atendido</option>
+            <option value="all">Todos (excepto atendidos)</option>
+            <option value="Atrasados">Atrasados (Urgente)</option>
+            <option value="EstaSemana">Esta Semana</option>
+            <option value="Atendido">Atendidos (Historial)</option>
+            <option value="Pendiente">Todos los Pendientes</option>
         </select>
+    </div>
+
+    
+    <div style="display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap;">
+        <div style="flex: 1; min-width: 200px; background: #e3f2fd; padding: 15px; border-radius: 8px; border: 1px solid #90caf9;">
+            <h3 style="color: #1565c0; font-size: 14px; margin-bottom: 5px;">Total Desembolsado (Atendidos)</h3>
+            <div id="total-desembolsado" style="font-size: 24px; font-weight: bold; color: #0d47a1;">S/ 0.00</div>
+        </div>
+        <div style="flex: 1; min-width: 200px; background: #fff3e0; padding: 15px; border-radius: 8px; border: 1px solid #ffcc80;">
+            <h3 style="color: #e65100; font-size: 14px; margin-bottom: 5px;">Proyección (Pendientes)</h3>
+            <div id="total-pendiente" style="font-size: 24px; font-weight: bold; color: #e65100;">S/ 0.00</div>
+        </div>
+        <div style="flex: 1; min-width: 200px; background: #e8f5e9; padding: 15px; border-radius: 8px; border: 1px solid #81c784;">
+            <h3 style="color: #2e7d32; font-size: 14px; margin-bottom: 5px;">Total General (Suma)</h3>
+            <div id="total-general" style="font-size: 24px; font-weight: bold; color: #2e7d32;">S/ 0.00</div>
+        </div>
     </div>
 
     <!-- CALENDARIO INTERACTIVO -->
@@ -668,13 +774,90 @@ document.addEventListener('DOMContentLoaded', () => {
             lugaresList.innerHTML = uniqueLugares.map(lugar => `<option value="${lugar}"></option>`).join('');
         }
 
-        const filtered = clients.filter(c => {
-            const matchesSearch = c.cliente.toLowerCase().includes(term) || c.dni.toLowerCase().includes(term);
-            const matchesStatus = status === 'all' || c.situacion === status;
+        const today = new Date();
+        today.setHours(0,0,0,0);
+        
+        const currentDay = today.getDay();
+        const distanceToMonday = currentDay === 0 ? -6 : 1 - currentDay;
+        const startOfWeek = new Date(today);
+        startOfWeek.setDate(today.getDate() + distanceToMonday);
+        
+        const endOfWeek = new Date(startOfWeek);
+        endOfWeek.setDate(startOfWeek.getDate() + 6);
+        endOfWeek.setHours(23,59,59,999);
+
+        let filtered = clients.filter(c => {
+            const matchesSearch = String(c.cliente || '').toLowerCase().includes(term) || String(c.dni || '').toLowerCase().includes(term);
+            
+            let isOverdue = false;
+            let isThisWeek = false;
+            
+            if (c.fecha && c.fecha !== '-') {
+                const cDate = new Date(c.fecha + 'T00:00:00');
+                if (c.situacion === 'Pendiente' && cDate < today) {
+                    isOverdue = true;
+                }
+                if (cDate >= startOfWeek && cDate <= endOfWeek) {
+                    isThisWeek = true;
+                }
+            }
+            c._isOverdue = isOverdue;
+            
+            let matchesStatus = true;
+            if (status === 'all') matchesStatus = c.situacion !== 'Atendido';
+            else if (status === 'Atrasados') matchesStatus = isOverdue;
+            else if (status === 'EstaSemana') matchesStatus = isThisWeek;
+            else matchesStatus = c.situacion === status;
+            
             return matchesSearch && matchesStatus;
         });
 
+        filtered.sort((a, b) => {
+            if (a.situacion === 'Atendido' && b.situacion !== 'Atendido') return 1;
+            if (a.situacion !== 'Atendido' && b.situacion === 'Atendido') return -1;
+            
+            if (a._isOverdue && !b._isOverdue) return -1;
+            if (!a._isOverdue && b._isOverdue) return 1;
+            
+            const dateA = a.fecha && a.fecha !== '-' ? new Date(a.fecha + 'T00:00:00') : new Date('2099-01-01');
+            const dateB = b.fecha && b.fecha !== '-' ? new Date(b.fecha + 'T00:00:00') : new Date('2099-01-01');
+            return dateA - dateB;
+        });
+
         tbody.innerHTML = '';
+
+        
+        let sumAtendidos = 0;
+        let sumPendientes = 0;
+        clients.forEach(c => {
+            let mStr = String(c.monto || '0');
+            // Remove spaces and currency symbols
+            mStr = mStr.replace(/[^0-9.,-]/g, '');
+            
+            // Handle European/Peruvian format vs US format
+            // If comma is the last non-digit character (e.g. 1.500,50), replace dots with nothing, comma with dot
+            if (mStr.lastIndexOf(',') > mStr.lastIndexOf('.')) {
+                mStr = mStr.replace(/\./g, '').replace(',', '.');
+            } else {
+                // US format (e.g. 1,500.50), remove commas
+                mStr = mStr.replace(/,/g, '');
+            }
+            
+            let m = parseFloat(mStr) || 0;
+            if (c.situacion === 'Atendido') sumAtendidos += m;
+            else sumPendientes += m;
+        });
+        
+        const elDesembolsado = document.getElementById('total-desembolsado');
+        const elPendiente = document.getElementById('total-pendiente');
+        const elGeneral = document.getElementById('total-general');
+        
+        if (elDesembolsado) elDesembolsado.textContent = 'S/ ' + sumAtendidos.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        if (elPendiente) elPendiente.textContent = 'S/ ' + sumPendientes.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        if (elGeneral) elGeneral.textContent = 'S/ ' + (sumAtendidos + sumPendientes).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
+        if (elPendiente) elPendiente.textContent = 'S/ ' + sumPendientes.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
 
         if (filtered.length === 0) {
             emptyState.style.display = 'block';
@@ -687,10 +870,16 @@ document.addEventListener('DOMContentLoaded', () => {
             filtered.forEach(c => {
                 const tr = document.createElement('tr');
                 
-                const statusClass = c.situacion === 'Atendido' ? 'status-attended' : 'status-pending';
+                let statusClass = c.situacion === 'Atendido' ? 'status-attended' : 'status-pending';
+                if (c._isOverdue) statusClass = 'status-overdue';
+                
+                let situacionLabel = c.situacion;
+                if (c._isOverdue) situacionLabel = 'Atrasado';
+
                 const desembolsoBadge = (c.desembolso && c.desembolso !== '-') ? `<span style="font-size:11px; padding:2px 6px; background:#eee; border-radius:4px; display:block; margin-top:4px;">${c.desembolso}</span>` : '';
                 
                 tr.onclick = () => editClient(c.id);
+                if (c._isOverdue) tr.className = 'row-overdue';
                 
                 tr.innerHTML = `
                     <td><strong>${c.cliente}</strong></td>
@@ -699,17 +888,17 @@ document.addEventListener('DOMContentLoaded', () => {
                         ${c.telefono}
                         ${(c.telefono && c.telefono !== '-') ? `
                             <div style="margin-top: 5px; display: flex; gap: 5px;">
-                                <a href="tel:${c.telefono.replace(/\s+/g, \'\')}" class="btn-icon" title="Llamar" onclick="event.stopPropagation();">📞 Llamar</a>
-                                <a href="https://wa.me/51${c.telefono.replace(/\s+/g, \'\')}" target="_blank" class="btn-icon" title="WhatsApp" onclick="event.stopPropagation();" style="background-color: #25D366; color: white; border-color: #25D366;">🟢 WhatsApp</a>
+                                <a href="tel:${String(c.telefono).replace(/\s+/g, '')}" class="btn-icon" title="Llamar" onclick="event.stopPropagation();">📞 Llamar</a>
+                                <a href="https://wa.me/51${String(c.telefono).replace(/\s+/g, '')}" target="_blank" class="btn-icon" title="WhatsApp" onclick="event.stopPropagation();" style="background-color: #25D366; color: white; border-color: #25D366;">🟢 WhatsApp</a>
                             </div>
                         ` : ''}
                     </td>
                     <td>${c.producto || '-'}</td>
                     <td>${c.monto || '-'}</td>
                     <td>${c.lugar || '-'}</td>
-                    <td>${c.fecha !== '-' ? formatDate(c.fecha) : 'Sin programar'}</td>
+                    <td style="${c._isOverdue ? 'color: var(--danger-color); font-weight: bold;' : ''}">${c.fecha !== '-' ? formatDate(c.fecha) : 'Sin programar'}</td>
                     <td>${c.turno !== '-' && c.turno ? c.turno : '-'}</td>
-                    <td><span class="status-badge ${statusClass}">${c.situacion}</span></td>
+                    <td><span class="status-badge ${statusClass}">${situacionLabel}</span></td>
                     <td>${c.desembolso !== '-' && c.desembolso ? c.desembolso : '-'}</td>
                     <td class="action-buttons">
                         <button class="btn btn-edit" onclick="event.stopPropagation(); editClient('${c.id}')">Editar</button>
@@ -724,7 +913,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function openModal(client = null) {
-        modal.style.display = 'flex';
+        modal.style.display = 'block';
         if (client) {
             modalTitle.textContent = 'Editar Cliente';
             idInput.value = client.id;
@@ -748,7 +937,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         checkSaturation();
-        setTimeout(() => clienteInput.focus(), 100);
+        // setTimeout(() => clienteInput.focus(), 100);
     }
 
     async function saveAndRender() {
@@ -802,6 +991,16 @@ document.addEventListener('DOMContentLoaded', () => {
         days.forEach(day => {
             const visits = clients.filter(c => c.fecha === day.date && c.situacion !== 'Atendido');
             const totalVisits = visits.length;
+            let dailySum = 0;
+            visits.forEach(c => {
+                let mStr = String(c.monto || '0').replace(/[^0-9.,-]/g, '');
+                if (mStr.lastIndexOf(',') > mStr.lastIndexOf('.')) {
+                    mStr = mStr.replace(/\./g, '').replace(',', '.');
+                } else {
+                    mStr = mStr.replace(/,/g, '');
+                }
+                dailySum += parseFloat(mStr) || 0;
+            });
             const numManana = visits.filter(c => c.turno === 'Mañana').length;
             const numTarde = visits.filter(c => c.turno === 'Tarde').length;
             
@@ -820,8 +1019,9 @@ document.addEventListener('DOMContentLoaded', () => {
             card.className = `calendar-card ${isToday ? 'today' : ''}`;
             card.innerHTML = `
                 <h3>${dayName} ${dayNum} ${monthName}</h3>
-                <div style="font-size: 12px; margin-bottom: 8px; color: #555; border-bottom: 1px solid #eee; padding-bottom: 5px;">
-                    Total a visitar: <strong>${totalVisits}</strong>
+                <div style="font-size: 12px; margin-bottom: 8px; color: #555; border-bottom: 1px solid #eee; padding-bottom: 5px; line-height: 1.4;">
+                    Total a visitar: <strong>${totalVisits}</strong> clientes<br>
+                    Monto proyectado: <strong style="color: #e65100;">S/ ${dailySum.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong>
                 </div>
                 <div class="shift">
                     <span>Mañana:</span>
@@ -838,6 +1038,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function formatDate(dateStr) {
         if (!dateStr) return '';
+        dateStr = String(dateStr);
         const parts = dateStr.split('-');
         if (parts.length === 3) {
             return `${parts[2]}/${parts[1]}/${parts[0]}`; // DD/MM/YYYY
