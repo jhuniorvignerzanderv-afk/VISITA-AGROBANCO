@@ -439,6 +439,23 @@
         </div>
     </header>
 
+    <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid var(--border-color); box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 10px;">
+            <h3 style="color: var(--primary-dark); font-size: 16px; margin: 0;">📊 Mi Meta Mensual (Desembolsos)</h3>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <label style="font-size: 14px; font-weight: bold; color: #555;">Meta: S/</label>
+                <input type="number" id="meta-input" placeholder="Ej: 250000" style="padding: 6px 10px; width: 120px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px;">
+                <button onclick="guardarMeta()" class="btn btn-primary" style="padding: 6px 15px; font-size: 13px;">Guardar</button>
+            </div>
+        </div>
+        <div style="background: #eee; height: 24px; border-radius: 12px; overflow: hidden; position: relative;">
+            <div id="meta-progress-bar" style="background: linear-gradient(90deg, #4caf50, #81c784); height: 100%; width: 0%; transition: width 0.5s;"></div>
+            <div id="meta-text" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; color: #333; text-shadow: 1px 1px 2px rgba(255,255,255,0.8);">
+                Calculando...
+            </div>
+        </div>
+    </div>
+
     <div style="background: #e8f5e9; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #4caf50;">
         <h3 style="color: var(--primary-dark); font-size: 16px; margin-bottom: 10px;">Llamar / WhatsApp Rápido</h3>
         <div id="quick-actions-container" style="display: flex; gap: 10px; flex-wrap: wrap;">
@@ -1128,6 +1145,38 @@ document.addEventListener('DOMContentLoaded', () => {
             elCountSinDesembolsar.textContent = countSinDesembolsar + (countSinDesembolsar === 1 ? ' cliente' : ' clientes');
         }
 
+        // Update Meta Mensual Progress
+        const metaValStr = localStorage.getItem('agrobanco_meta_mensual');
+        const metaVal = metaValStr ? parseFloat(metaValStr) : 0;
+        let sumDesembolsadosMes = 0;
+        const currentMonthPrefix = String(today.getFullYear()) + '-' + String(today.getMonth() + 1).padStart(2, '0');
+        
+        clients.forEach(c => {
+            const des = c.desembolso ? c.desembolso.trim().toLowerCase() : '';
+            if (des === 'desembolsado' && c.fecha && c.fecha.startsWith(currentMonthPrefix)) {
+                let mStr = String(c.monto || '0').replace(/[^0-9.,-]/g, '');
+                if (mStr.lastIndexOf(',') > mStr.lastIndexOf('.')) mStr = mStr.replace(/\./g, '').replace(',', '.');
+                else mStr = mStr.replace(/,/g, '');
+                sumDesembolsadosMes += parseFloat(mStr) || 0;
+            }
+        });
+
+        const progressBar = document.getElementById('meta-progress-bar');
+        const progressText = document.getElementById('meta-text');
+        if (progressBar && progressText) {
+            if (metaVal > 0) {
+                let pct = (sumDesembolsadosMes / metaVal) * 100;
+                if (pct > 100) pct = 100;
+                progressBar.style.width = pct + '%';
+                if (pct > 50) progressText.style.color = '#fff';
+                else progressText.style.color = '#333';
+                progressText.textContent = `S/ ${sumDesembolsadosMes.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} de S/ ${metaVal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} (${(sumDesembolsadosMes / metaVal * 100).toFixed(1)}%)`;
+            } else {
+                progressBar.style.width = '0%';
+                progressText.style.color = '#333';
+                progressText.textContent = 'Ingresa tu meta arriba para ver tu progreso mensual';
+            }
+        }
 
         if (filtered.length === 0) {
             emptyState.style.display = 'block';
@@ -1151,6 +1200,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 tr.onclick = () => editClient(c.id);
                 if (c._isOverdue) tr.className = 'row-overdue';
                 
+                const waMsg = encodeURIComponent(`Hola ${c.cliente}, soy tu asesor de Agrobanco. Te escribo para confirmar nuestra cita de hoy${c.turno && c.turno !== '-' ? ' en la ' + c.turno : ''}. ¿Me confirmas?`);
+                let quickActions = '';
+                if (c.situacion !== 'Atendido') {
+                    quickActions += `<button class="btn" style="background-color: var(--success-color); color: white; width: 100%; margin-bottom: 5px;" onclick="event.stopPropagation(); quickMark('${c.id}', 'Atendido', null)">✅ Atendido</button>`;
+                } else if (c.desembolso !== 'Desembolsado') {
+                    quickActions += `<button class="btn" style="background-color: #2e7d32; color: white; width: 100%; margin-bottom: 5px;" onclick="event.stopPropagation(); quickMark('${c.id}', null, 'Desembolsado')">💰 Desembolsar</button>`;
+                }
+
                 tr.innerHTML = `
                     <td><strong>${c.cliente}</strong></td>
                     <td>${c.dni}</td>
@@ -1159,20 +1216,23 @@ document.addEventListener('DOMContentLoaded', () => {
                         ${(c.telefono && c.telefono !== '-') ? `
                             <div style="margin-top: 5px; display: flex; gap: 5px;">
                                 <a href="tel:${String(c.telefono).replace(/\s+/g, '')}" class="btn-icon" title="Llamar" onclick="event.stopPropagation();">📞 Llamar</a>
-                                <a href="https://wa.me/51${String(c.telefono).replace(/\s+/g, '')}" target="_blank" class="btn-icon" title="WhatsApp" onclick="event.stopPropagation();" style="background-color: #25D366; color: white; border-color: #25D366;">🟢 WhatsApp</a>
+                                <a href="https://wa.me/51${String(c.telefono).replace(/\s+/g, '')}?text=${waMsg}" target="_blank" class="btn-icon" title="WhatsApp" onclick="event.stopPropagation();" style="background-color: #25D366; color: white; border-color: #25D366;">🟢 WhatsApp</a>
                             </div>
                         ` : ''}
                     </td>
                     <td>${c.producto || '-'}</td>
                     <td>${c.monto || '-'}</td>
-                    <td>${c.lugar || '-'}</td>
+                    <td>${(c.lugar && c.lugar !== '-') ? `<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(c.lugar)}" target="_blank" onclick="event.stopPropagation();" style="color: #1565c0; text-decoration: none; font-weight: bold;">📍 ${c.lugar}</a>` : '-'}</td>
                     <td style="${c._isOverdue ? 'color: var(--danger-color); font-weight: bold;' : ''}">${c.fecha !== '-' ? formatDate(c.fecha) : 'Sin programar'}</td>
                     <td>${c.turno !== '-' && c.turno ? c.turno : '-'}</td>
                     <td><span class="status-badge ${statusClass}">${situacionLabel}</span></td>
                     <td>${c.desembolso !== '-' && c.desembolso ? c.desembolso : '-'}</td>
                     <td class="action-buttons">
-                        <button class="btn btn-edit" onclick="event.stopPropagation(); editClient('${c.id}')">Editar</button>
-                        <button class="btn btn-delete" onclick="event.stopPropagation(); deleteClient('${c.id}')">Borrar</button>
+                        ${quickActions}
+                        <div style="display: flex; gap: 5px;">
+                            <button class="btn btn-edit" onclick="event.stopPropagation(); editClient('${c.id}')" style="flex: 1;">Editar</button>
+                            <button class="btn btn-delete" onclick="event.stopPropagation(); deleteClient('${c.id}')" style="flex: 1;">Borrar</button>
+                        </div>
                     </td>
                 `;
                 tbody.appendChild(tr);
@@ -1445,6 +1505,30 @@ document.addEventListener('DOMContentLoaded', () => {
         if (confirm('¿Eliminar este cliente?')) {
             clients = clients.filter(c => c.id !== id);
             saveAndRender();
+        }
+    };
+
+    window.quickMark = function(id, situacion, desembolso) {
+        const idx = clients.findIndex(c => c.id === id);
+        if (idx !== -1) {
+            if (situacion) clients[idx].situacion = situacion;
+            if (desembolso) clients[idx].desembolso = desembolso;
+            saveAndRender();
+        }
+    };
+
+    // Meta Mensual
+    const savedMeta = localStorage.getItem('agrobanco_meta_mensual');
+    if (savedMeta) {
+        document.getElementById('meta-input').value = savedMeta;
+    }
+
+    window.guardarMeta = function() {
+        const val = document.getElementById('meta-input').value;
+        if (val) {
+            localStorage.setItem('agrobanco_meta_mensual', val);
+            alert('¡Meta mensual guardada exitosamente!');
+            renderTable();
         }
     };
 });
