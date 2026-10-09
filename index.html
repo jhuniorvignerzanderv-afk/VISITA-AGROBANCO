@@ -1025,7 +1025,24 @@ document.addEventListener('DOMContentLoaded', () => {
         dashboard.innerHTML = '';
 
         days.forEach(day => {
-            const visits = clients.filter(c => c.fecha === day.date && c.situacion !== 'Atendido');
+            const localTodayStr = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
+            const isToday = day.date === localTodayStr;
+
+            let visits = clients.filter(c => c.fecha === day.date && c.situacion !== 'Atendido');
+
+            // Mover los pendientes del pasado al día de hoy automáticamente
+            if (isToday) {
+                const overdue = clients.filter(c => {
+                    if (c.situacion !== 'Pendiente' || !c.fecha || c.fecha === '-') return false;
+                    const cDate = new Date(c.fecha + 'T00:00:00');
+                    return cDate < today;
+                });
+                visits = visits.concat(overdue);
+            } else if (day.obj < today) {
+                // Si el día ya pasó, los pendientes se movieron a hoy, así que aquí no hay pendientes
+                visits = [];
+            }
+
             const totalVisits = visits.length;
             let dailySum = 0;
             visits.forEach(c => {
@@ -1039,9 +1056,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             const numManana = visits.filter(c => c.turno === 'Mañana').length;
             const numTarde = visits.filter(c => c.turno === 'Tarde').length;
-            
-            const localTodayStr = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
-            const isToday = day.date === localTodayStr;
             
             const daysOfWeek = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
             const dayName = daysOfWeek[day.obj.getDay()];
