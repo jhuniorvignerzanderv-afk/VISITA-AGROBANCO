@@ -560,6 +560,23 @@
     </div>
 </div>
 
+<!-- MODAL PARA GESTIONAR REZAGADOS -->
+<div id="overdue-modal" class="modal">
+    <div class="modal-content" style="max-width: 600px;">
+        <span id="close-overdue-modal" class="close">&times;</span>
+        <h2 style="color: #c62828; margin-bottom: 15px;">⚠️ Clientes No Atendidos</h2>
+        <p style="font-size: 14px; margin-bottom: 15px; color: #555;">Los siguientes clientes quedaron pendientes de días anteriores. ¿Para cuándo deseas reprogramarlos?</p>
+        
+        <div id="overdue-list-container" style="max-height: 400px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; border-radius: 4px; margin-bottom: 15px;">
+            <!-- Contenido generado dinámicamente -->
+        </div>
+
+        <div class="action-buttons">
+            <button id="btn-save-overdue" class="btn btn-primary" style="width: 100%;">Guardar Reprogramaciones</button>
+        </div>
+    </div>
+</div>
+
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     // API
@@ -582,6 +599,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const closeModal = document.getElementById('close-modal');
     const clientForm = document.getElementById('client-form');
     const modalTitle = document.getElementById('modal-title');
+    
+    // Overdue Modal Elements
+    const overdueModal = document.getElementById('overdue-modal');
+    const closeOverdueModal = document.getElementById('close-overdue-modal');
+    const btnSaveOverdue = document.getElementById('btn-save-overdue');
+    const overdueListContainer = document.getElementById('overdue-list-container');
     
     // Form Inputs
     const idInput = document.getElementById('client-id');
@@ -625,28 +648,23 @@ document.addEventListener('DOMContentLoaded', () => {
         
         loadingIndicator.style.display = 'none';
 
-        // AUTO-ROLLOVER: Pasar los pendientes atrasados a HOY
+        // Identificar los pendientes atrasados para mostrarlos en la alerta
         const todayD = new Date();
         todayD.setHours(0,0,0,0);
         const localTodayStr = todayD.getFullYear() + '-' + String(todayD.getMonth() + 1).padStart(2, '0') + '-' + String(todayD.getDate()).padStart(2, '0');
         
         let rolledOverNames = [];
         let scheduledTodayNames = [];
-        let modified = false;
 
         clients.forEach(c => {
             const stat = c.situacion ? c.situacion.trim().toLowerCase() : '';
             const des = c.desembolso ? c.desembolso.trim().toLowerCase() : '';
-            
-            // Si está desembolsado, lógicamente ya fue atendido, así que no se reprograma
             const isReallyAtendido = (stat === 'atendido' || des === 'desembolsado');
 
             if (!isReallyAtendido && stat === 'pendiente' && c.fecha && c.fecha !== '-') {
                 const cDate = new Date(c.fecha + 'T00:00:00');
                 if (cDate < todayD) {
-                    rolledOverNames.push(c.cliente);
-                    c.fecha = localTodayStr; // Actualiza la fecha a hoy
-                    modified = true;
+                    rolledOverNames.push(c); // Guardamos el objeto completo para gestionarlos
                 } else if (c.fecha === localTodayStr) {
                     scheduledTodayNames.push(c.cliente);
                 }
@@ -658,11 +676,7 @@ document.addEventListener('DOMContentLoaded', () => {
             today: scheduledTodayNames
         };
 
-        if (modified) {
-            saveAndRender(); // Save to cloud and render
-        } else {
-            renderTable();
-        }
+        renderTable();
     }
     
     initData();
@@ -938,22 +952,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const globalAlert = document.getElementById('global-alert');
         if (globalAlert && window.rolloverData) {
-            const rolled = window.rolloverData.rolled;
+            const rolled = window.rolloverData.rolled; // array of full client objects
             const todaySch = window.rolloverData.today;
             
             if (rolled.length > 0 || todaySch.length > 0) {
                 globalAlert.style.display = 'block';
                 let html = '';
                 if (rolled.length > 0) {
-                    html += `<div style="margin-bottom: 8px;"><strong>🔄 VISITAS REPROGRAMADAS AUTOMÁTICAMENTE A HOY:</strong><br>No lograste visitar a: <span style="color: #c62828;">${rolled.join(', ')}</span>. Sus visitas se pasaron para hoy de manera automática.</div>`;
+                    html += `<div style="margin-bottom: 8px;"><strong>⚠️ VISITAS ATRASADAS (REZAGADAS):</strong><br>Tienes <span style="color: #c62828; font-weight: bold;">${rolled.length} cliente(s)</span> de días anteriores que no atendiste.</div>`;
+                    html += `<button id="btn-open-reschedule" style="background-color: #c62828; color: white; border: none; padding: 6px 12px; border-radius: 4px; font-weight: bold; cursor: pointer; margin-bottom: 10px;">📅 Reprogramar Estos Clientes</button>`;
                 }
                 if (todaySch.length > 0) {
                     html += `<div><strong>📅 PROGRAMADOS ORIGINALMENTE PARA HOY:</strong><br><span style="color: #1565c0;">${todaySch.join(', ')}</span>.</div>`;
                 }
                 if (rolled.length > 0) {
-                    html += `<div style="margin-top: 8px; font-size: 13px; color: #d32f2f;"><em>⚠️ Tienes cruces de tiempos. Sugerencia: Comunícate con los clientes programados para hoy si necesitas posponerlos por falta de tiempo.</em></div>`;
+                    html += `<div style="margin-top: 8px; font-size: 13px; color: #d32f2f;"><em>Sugerencia: Si los pasas para hoy, fíjate si se cruzan con los que ya tenías programados.</em></div>`;
                 }
                 globalAlert.innerHTML = html;
+                
+                const btnReschedule = document.getElementById('btn-open-reschedule');
+                if (btnReschedule) {
+                    btnReschedule.onclick = () => openOverdueModal(rolled);
+                }
             } else {
                 globalAlert.style.display = 'none';
             }
@@ -1056,6 +1076,62 @@ document.addEventListener('DOMContentLoaded', () => {
         
         checkSaturation();
         // setTimeout(() => clienteInput.focus(), 100);
+    }
+
+    function openOverdueModal(rolledClients) {
+        overdueModal.style.display = 'block';
+        overdueListContainer.innerHTML = '';
+        
+        rolledClients.forEach(c => {
+            const div = document.createElement('div');
+            div.style.padding = '10px';
+            div.style.borderBottom = '1px solid #eee';
+            div.style.display = 'flex';
+            div.style.flexDirection = 'column';
+            div.style.gap = '5px';
+            
+            div.innerHTML = `
+                <div style="font-weight: bold; color: #1565c0;">${c.cliente}</div>
+                <div style="font-size: 12px; color: #666;">Originalmente para: ${formatDate(c.fecha)} | Turno: ${c.turno}</div>
+                <div style="display: flex; gap: 10px; align-items: center; margin-top: 5px;">
+                    <label style="font-size: 13px;">Nueva Fecha:</label>
+                    <input type="date" class="overdue-date-input" data-id="${c.id}" value="" style="padding: 5px; border: 1px solid #ccc; border-radius: 4px; flex: 1;">
+                </div>
+            `;
+            overdueListContainer.appendChild(div);
+        });
+    }
+
+    if (closeOverdueModal) {
+        closeOverdueModal.addEventListener('click', () => {
+            overdueModal.style.display = 'none';
+        });
+    }
+
+    if (btnSaveOverdue) {
+        btnSaveOverdue.addEventListener('click', () => {
+            const inputs = document.querySelectorAll('.overdue-date-input');
+            let modified = false;
+            
+            inputs.forEach(input => {
+                if (input.value) { // Solo actualizamos si eligió una fecha
+                    const id = input.getAttribute('data-id');
+                    const idx = clients.findIndex(c => c.id === id);
+                    if (idx !== -1) {
+                        clients[idx].fecha = input.value;
+                        modified = true;
+                    }
+                }
+            });
+            
+            if (modified) {
+                overdueModal.style.display = 'none';
+                saveAndRender();
+            } else {
+                alert('No seleccionaste ninguna fecha nueva. Los clientes seguirán como rezagados.');
+                overdueModal.style.display = 'none';
+            }
+        });
     }
 
     async function saveAndRender() {
