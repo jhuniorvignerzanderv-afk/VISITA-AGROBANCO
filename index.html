@@ -584,9 +584,17 @@
         <!-- Tarjetas de calendario generadas por JS -->
     </div>
 
-    <div id="calendar-filter-indicator" style="display: none; background-color: #fff3e0; color: #e65100; padding: 12px; border-radius: 8px; border: 1px solid #ffcc80; margin-bottom: 15px; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
-        <div><strong>🔍 Filtrando desde el Calendario:</strong> Mostrando clientes para <span id="cf-details" style="font-weight: bold; color: #c2185b;">---</span></div>
-        <button onclick="clearCalendarFilter()" style="background: #e65100; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-weight: bold;">✕ Quitar Filtro</button>
+    <div id="calendar-filter-indicator" style="display: none; background-color: #fff3e0; color: #e65100; padding: 12px; border-radius: 8px; border: 1px solid #ffcc80; margin-bottom: 15px; flex-wrap: wrap; gap: 10px; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+        <div style="flex: 1; min-width: 250px;">
+            <strong>🔍 Filtrando desde el Calendario:</strong> <span id="cf-details" style="font-weight: bold; color: #c2185b;">---</span>
+            <div style="margin-top: 5px; font-size: 13px; color: #d84315;">
+                💰 Proyectado: <strong id="cf-proyectado">S/ 0.00</strong> | ✅ Desembolsado: <strong id="cf-desembolsado" style="color: #2e7d32;">S/ 0.00</strong>
+            </div>
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <button id="btn-route-day" style="background: #2196f3; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; display: none;">🗺️ Ruta del Día</button>
+            <button onclick="clearCalendarFilter()" style="background: #e65100; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold;">✕ Quitar Filtro</button>
+        </div>
     </div>
 
 
@@ -1689,6 +1697,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             const numManana = visits.filter(c => c.turno === 'Mañana').length;
             const numTarde = visits.filter(c => c.turno === 'Tarde').length;
+            const totalMontoDia = visits.reduce((sum, c) => sum + (parseFloat(c.monto) || 0), 0);
             
             const daysOfWeek = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
             const dayName = daysOfWeek[day.obj.getDay()];
