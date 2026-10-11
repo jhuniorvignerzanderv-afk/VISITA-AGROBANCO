@@ -1486,7 +1486,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let sumDesembolsados = 0, countDesembolsados = 0;
         let sumSinDesembolsar = 0, countSinDesembolsar = 0;
 
-        filtered.forEach(c => {
+        clients.forEach(c => {
             let mStr = String(c.monto || '0');
             mStr = mStr.replace(/[^0-9.,-]/g, '');
             if (mStr.lastIndexOf(',') > mStr.lastIndexOf('.')) {
