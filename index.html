@@ -99,6 +99,8 @@
 
         .controls {
             display: flex;
+            flex-wrap: wrap;
+            align-items: center;
             gap: 15px;
             margin-bottom: 20px;
         }
@@ -484,6 +486,8 @@
 
     <div class="controls">
         <input type="text" id="search-input" placeholder="Buscar por cliente o DNI...">
+        <button id="btn-vip" class="btn" style="background: #ffc107; color: #333; font-weight: bold; font-size: 13px; padding: 8px 12px; border-radius: 4px;" onclick="togglePriority()">💸 Priorizar Montos</button>
+        <button id="btn-group-location" class="btn" style="background: #607d8b; color: white; font-size: 13px; padding: 8px 12px; border-radius: 4px;" onclick="toggleGroupLocation()">🗺️ Agrupar por Zona</button>
         <select id="status-filter">
             <option value="all">Todos (excepto atendidos)</option>
             <option value="Atrasados">Atrasados (Urgente)</option>
