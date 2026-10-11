@@ -391,6 +391,29 @@
             }
         }
 
+    
+        .product-chip {
+            display: inline-block;
+            padding: 4px 10px;
+            margin: 2px 4px 2px 0;
+            background-color: #e3f2fd;
+            color: #1976d2;
+            border-radius: 12px;
+            font-size: 11px;
+            cursor: pointer;
+            border: 1px solid #90caf9;
+            transition: all 0.2s;
+            user-select: none;
+        }
+        .product-chip:hover {
+            background-color: #bbdefb;
+        }
+        body.dark-mode .product-chip {
+            background-color: #1e3a5f;
+            color: #64b5f6;
+            border-color: #1565c0;
+        }
+
     </style>
 </head>
 <body>
@@ -1157,6 +1180,62 @@ document.addEventListener('DOMContentLoaded', () => {
         renderTable();
     };
 
+    
+    window.isPriorityMode = false;
+    window.togglePriority = function() {
+        const btn = document.getElementById('btn-vip'); // keeping the same ID for ease
+        window.isPriorityMode = !window.isPriorityMode;
+        if (window.isPriorityMode) {
+            btn.style.background = '#4caf50';
+            btn.innerHTML = '❌ Quitar Prioridad';
+            btn.style.color = 'white';
+        } else {
+            btn.style.background = '#ffc107';
+            btn.innerHTML = '💸 Priorizar Montos';
+            btn.style.color = '#333';
+        }
+        renderTable();
+    };
+
+    
+    window.setProduct = function(prod) {
+        document.getElementById('producto').value = prod;
+    };
+
+    function renderQuickProducts() {
+        const container = document.getElementById('quick-products-container');
+        if (!container) return;
+        
+        // Frecuentes fijos por si la lista está vacía
+        const defaultProducts = ['Espárrago', 'Maíz', 'Caña de Azúcar', 'Ganado'];
+        
+        // Extraer productos únicos de la base de datos
+        const productCounts = {};
+        clients.forEach(c => {
+            const p = (c.producto || '').trim();
+            if (p && p !== '-' && p !== '') {
+                // Capitalizar primera letra para uniformidad
+                const cleanP = p.charAt(0).toUpperCase() + p.slice(1).toLowerCase();
+                productCounts[cleanP] = (productCounts[cleanP] || 0) + 1;
+            }
+        });
+        
+        // Juntar los fijos con los dinámicos
+        defaultProducts.forEach(dp => {
+            if (!productCounts[dp]) productCounts[dp] = 0; // Añadir con peso 0 si no existe
+        });
+        
+        // Ordenar por frecuencia de uso (los más usados primero)
+        const sortedProducts = Object.keys(productCounts).sort((a, b) => productCounts[b] - productCounts[a]);
+        
+        // Mostrar máximo los 10 más populares
+        const topProducts = sortedProducts.slice(0, 10);
+        
+        container.innerHTML = topProducts.map(p => 
+            `<span class="product-chip" onclick="setProduct('${p}')">+ ${p}</span>`
+        ).join('');
+    }
+
     // --- NUEVAS MEJORAS JS ---
     // 1. Dark Mode Toggle
     const btnToggleDark = document.getElementById('btn-toggle-dark');
@@ -1363,7 +1442,24 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
+        // PRIORIZAR MONTOS
         filtered.sort((a, b) => {
+            if (window.isPriorityMode) {
+                let mStrA = String(a.monto || '0').replace(/[^0-9.,-]/g, '');
+                if (mStrA.lastIndexOf(',') > mStrA.lastIndexOf('.')) mStrA = mStrA.replace(/\./g, '').replace(',', '.');
+                else mStrA = mStrA.replace(/,/g, '');
+                const valA = parseFloat(mStrA) || 0;
+                
+                let mStrB = String(b.monto || '0').replace(/[^0-9.,-]/g, '');
+                if (mStrB.lastIndexOf(',') > mStrB.lastIndexOf('.')) mStrB = mStrB.replace(/\./g, '').replace(',', '.');
+                else mStrB = mStrB.replace(/,/g, '');
+                const valB = parseFloat(mStrB) || 0;
+                
+                // Si ambos tienen montos diferentes, ordenar por mayor monto
+                if (valA !== valB) return valB - valA;
+            }
+
+
             if (window.isGroupedByLocation) {
                 const locA = (a.lugar || 'Z_Sin Zona').trim().toUpperCase();
                 const locB = (b.lugar || 'Z_Sin Zona').trim().toUpperCase();
@@ -1593,6 +1689,17 @@ document.addEventListener('DOMContentLoaded', () => {
             
                 const tr = document.createElement('tr');
                 
+                // VIP Highlight
+                let mStrCheck = String(c.monto || '0').replace(/[^0-9.,-]/g, '');
+                if (mStrCheck.lastIndexOf(',') > mStrCheck.lastIndexOf('.')) mStrCheck = mStrCheck.replace(/\./g, '').replace(',', '.');
+                else mStrCheck = mStrCheck.replace(/,/g, '');
+                const valCheck = parseFloat(mStrCheck) || 0;
+                
+                // If priority mode is on and the client has a high amount, we could highlight it, but sorting is enough.
+                if (window.isPriorityMode && valCheck > 0) {
+                    tr.style.borderLeft = '4px solid #4caf50';
+                }
+                
                 const todayForHighlight = new Date();
                 const todayStrHighlight = todayForHighlight.getFullYear() + '-' + String(todayForHighlight.getMonth() + 1).padStart(2, '0') + '-' + String(todayForHighlight.getDate()).padStart(2, '0');
                 if (c.fecha === todayStrHighlight) {
@@ -1673,6 +1780,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function openModal(client = null) {
         modal.style.display = 'block';
+        renderQuickProducts();
         if (client) {
             modalTitle.textContent = 'Editar Cliente';
             idInput.value = client.id;
