@@ -840,10 +840,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const productoInput = document.getElementById('producto');
     const montoInput = document.getElementById('monto');
     const lugarInput = document.getElementById('lugar');
-    const uploadGps = document.getElementById('upload-gps');
-    const gpsLinkInput = document.getElementById('gps-link');
-    const gpsLinkPreview = document.getElementById('gps-link-preview');
-    const gpsStatus = document.getElementById('gps-status');
+    const uploadGpsDom = document.getElementById('upload-gps-dom');
+    const uploadGpsCha = document.getElementById('upload-gps-cha');
+    const gpsDomInput = document.getElementById('gps-dom');
+    const gpsChaInput = document.getElementById('gps-cha');
+    const gpsStatusDom = document.getElementById('gps-status-dom');
+    const gpsStatusCha = document.getElementById('gps-status-cha');
+    const previewDom = document.getElementById('preview-dom');
+    const previewCha = document.getElementById('preview-cha');
     const fechaInput = document.getElementById('fecha');
     const turnoInput = document.getElementById('turno');
     const situacionInput = document.getElementById('situacion');
@@ -1058,7 +1062,8 @@ document.addEventListener('DOMContentLoaded', () => {
             producto: productoInput.value.trim() || '-',
             monto: montoInput.value.trim() || '-',
             lugar: lugarInput.value.trim() || '-',
-            gps_link: gpsLinkInput.value.trim() || '',
+            gps_dom: gpsDomInput.value.trim() || '',
+            gps_cha: gpsChaInput.value.trim() || '',
             fecha: fechaInput.value || '-',
             turno: turnoInput.value,
             situacion: situacionInput.value,
@@ -1247,14 +1252,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     
-    // EXIF GPS EXTRACTION
-    if (uploadGps) {
-        uploadGps.addEventListener('change', function(e) {
+    // EXIF GPS EXTRACTION HELPER
+    function handleGPSUpload(inputElement, statusElement, linkInput, previewLink, name) {
+        inputElement.addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (!file) return;
             
-            gpsStatus.textContent = "⌛ Leyendo foto...";
-            gpsStatus.style.color = "#ff9800";
+            statusElement.textContent = "⌛ Leyendo...";
+            statusElement.style.color = "#ff9800";
             
             EXIF.getData(file, function() {
                 try {
@@ -1271,31 +1276,30 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (lonRef === "W") lonDec = -lonDec;
                         
                         const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${latDec},${lonDec}`;
-                        gpsLinkInput.value = mapsUrl;
+                        linkInput.value = mapsUrl;
                         
-                        gpsLinkPreview.href = mapsUrl;
-                        gpsLinkPreview.style.display = 'block';
-                        gpsStatus.textContent = "✅ Coordenadas extraídas con éxito";
-                        gpsStatus.style.color = "#4caf50";
+                        previewLink.href = mapsUrl;
+                        previewLink.style.display = 'inline-block';
+                        statusElement.textContent = `✅ ${name} guardado`;
+                        statusElement.style.color = "#4caf50";
                         
-                        // Si el lugar estaba vacío, poner algo automático
-                        if (!lugarInput.value.trim()) {
-                            lugarInput.value = "Ubicación GPS Extraída";
-                        }
                     } else {
-                        gpsStatus.textContent = "❌ La foto no tiene datos de ubicación GPS.";
-                        gpsStatus.style.color = "#f44336";
-                        gpsLinkPreview.style.display = 'none';
-                        gpsLinkInput.value = "";
+                        statusElement.textContent = "❌ Sin GPS";
+                        statusElement.style.color = "#f44336";
+                        previewLink.style.display = 'none';
+                        linkInput.value = "";
                     }
                 } catch(err) {
-                    gpsStatus.textContent = "❌ Error leyendo la foto.";
-                    gpsStatus.style.color = "#f44336";
+                    statusElement.textContent = "❌ Error";
+                    statusElement.style.color = "#f44336";
                 }
-                uploadGps.value = ''; // reset
+                inputElement.value = ''; // reset
             });
         });
     }
+    
+    if (uploadGpsDom) handleGPSUpload(uploadGpsDom, gpsStatusDom, gpsDomInput, previewDom, "Domicilio");
+    if (uploadGpsCha) handleGPSUpload(uploadGpsCha, gpsStatusCha, gpsChaInput, previewCha, "Chacra");
 
     // --- NUEVAS MEJORAS JS ---
     // 1. Dark Mode Toggle
