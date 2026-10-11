@@ -303,134 +303,63 @@
             display: flex;
             gap: 10px;
         }
-        @media (max-width: 768px) {
-            header {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 15px;
-            }
-            header div {
-                display: flex;
-                flex-wrap: wrap;
-                gap: 10px;
-                width: 100%;
-            }
-            header div button {
-                flex: 1 1 calc(50% - 5px);
-                font-size: 14px;
-                padding: 8px;
-            }
-            #btn-clear-all {
-                flex: 1 1 100%;
-            }
-            .controls {
-                flex-direction: column;
-            }
-            .action-buttons {
-                flex-direction: column;
-            }
-            body {
-                padding: 10px;
-            }
-            .container {
-                padding: 15px;
-            }
-            .modal {
-                align-items: flex-start;
-                padding-top: 20px;
-                padding-bottom: 20px;
-                overflow-y: auto;
-            }
-            .modal-content { pointer-events: auto !important; z-index: 999999 !important; 
-                max-height: none;
+                @media (max-width: 768px) {
+            .container { padding: 10px; }
+            table, thead, tbody, th, td, tr { display: block; }
+            thead tr { display: none; }
+            tr {
                 margin-bottom: 20px;
-                padding: 15px;
-            }
-        }
-    
-        @media (max-width: 768px) {
-            header {
-                flex-direction: column;
-                align-items: stretch;
-                gap: 15px;
-                padding-bottom: 15px;
-            }
-            header div {
-                display: flex;
-                flex-direction: column;
-                gap: 10px;
-            }
-            header div button {
-                width: 100%;
-                padding: 12px;
-                font-size: 16px;
-            }
-            .controls {
-                flex-direction: column;
-            }
-            #quick-actions-container {
-                flex-direction: column;
-            }
-            #quick-actions-container button {
-                width: 100%;
-                justify-content: center;
-                padding: 12px;
-            }
-            
-            table, thead, tbody, th, td, tr { 
-                display: block; 
-            }
-            thead tr { 
-                position: absolute;
-                top: -9999px;
-                left: -9999px;
-            }
-            tr { 
-                border: 1px solid #ccc; 
-                margin-bottom: 15px; 
-                border-radius: 8px;
+                border: 1px solid var(--border-color);
+                border-radius: 12px;
                 background: var(--container-bg, white);
-                box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+                box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+                overflow: hidden;
             }
-            td { 
+            body.dark-mode tr { box-shadow: 0 4px 10px rgba(0,0,0,0.4); }
+            /* Client Name header inside card */
+            td:nth-of-type(1) {
+                background: var(--primary-color);
+                color: white;
+                font-size: 16px;
+                font-weight: bold;
+                text-align: center;
+                padding: 12px;
+                justify-content: center;
+            }
+            td:nth-of-type(1):before { content: ""; display: none; }
+            td:nth-of-type(1) strong { color: white; }
+            
+            td {
                 border: none;
-                border-bottom: 1px solid #eee; 
+                border-bottom: 1px solid #eee;
                 position: relative;
-                padding-left: 45%; 
+                padding: 10px 15px 10px 45%;
                 text-align: right;
                 min-height: 40px;
                 display: flex;
-                justify-content: flex-end;
                 align-items: center;
+                justify-content: flex-end;
+                font-size: 14px;
             }
-            td:before { 
+            body.dark-mode td { border-bottom: 1px solid #333; }
+            td:last-child { border-bottom: none; }
+            
+            td:before {
                 position: absolute;
                 top: 50%;
-                transform: translateY(-50%);
                 left: 15px;
-                width: 40%; 
-                padding-right: 10px; 
+                transform: translateY(-50%);
+                width: 40%;
                 white-space: nowrap;
                 text-align: left;
                 font-weight: bold;
-                color: var(--primary-dark);
+                color: #666;
+                font-size: 12px;
+                text-transform: uppercase;
             }
-            .modal-content {
-                width: 95%;
-                margin: 10px auto;
-                padding: 15px;
-            }
-            .action-buttons {
-                flex-direction: column;
-                gap: 10px;
-            }
-            .action-buttons button {
-                width: 100%;
-                padding: 12px;
-                font-size: 16px;
-            }
+            body.dark-mode td:before { color: #aaa; }
+            
             /* Labeling the data */
-            td:nth-of-type(1):before { content: "CLIENTE"; }
             td:nth-of-type(2):before { content: "DNI"; }
             td:nth-of-type(3):before { content: "TELÉFONO"; }
             td:nth-of-type(4):before { content: "PRODUCTO"; }
@@ -439,21 +368,26 @@
             td:nth-of-type(7):before { content: "FECHA"; }
             td:nth-of-type(8):before { content: "TURNO"; }
             td:nth-of-type(9):before { content: "SITUACIÓN"; }
-            td:nth-of-type(10):before { content: "ESTADO DESEMBOLSO"; }
-            td:nth-of-type(11):before { content: "ACCIONES"; top: 20px; }
-            td:nth-of-type(11) {
-                flex-direction: column;
-                align-items: flex-end;
-                gap: 8px;
-                padding-top: 15px;
-                padding-bottom: 15px;
+            td:nth-of-type(10):before { content: "DESEMBOLSO"; }
+            td:nth-of-type(11):before { content: "OBSERVACIONES"; }
+            td:nth-of-type(12):before { content: "REFERENCIAS"; }
+            td:nth-of-type(13):before { content: ""; } /* Acciones */
+            
+            td:nth-of-type(13) {
+                flex-direction: row;
+                flex-wrap: wrap;
+                align-items: center;
+                justify-content: center;
+                gap: 10px;
+                padding: 15px;
+                background: rgba(0,0,0,0.02);
             }
-            td:nth-of-type(11) .btn {
-                width: 100%;
-                max-width: 150px;
-                padding: 10px;
-                text-align: center;
-                display: block;
+            body.dark-mode td:nth-of-type(13) { background: rgba(255,255,255,0.02); }
+            td:nth-of-type(13) .btn {
+                width: 45%;
+                margin: 0 !important;
+                padding: 8px;
+                font-size: 13px;
             }
         }
 
@@ -469,6 +403,8 @@
             <button id="btn-add-client" class="btn btn-primary">+ Agregar Cliente Manual</button>
             <button id="btn-export-pdf" class="btn" style="background-color: #d32f2f; color: white;">📄 PDF de Hoy</button>
             <button id="btn-export-excel" class="btn" style="background-color: #107c41; color: white;">Descargar Excel</button>
+            <label for="btn-import-excel" class="btn" style="background-color: #217346; color: white; cursor: pointer; margin: 0; padding: 10px;">Subir Excel</label>
+            <input type="file" id="btn-import-excel" style="display: none;" accept=".xlsx, .xls">
             <button id="btn-clear-all" class="btn btn-danger">Borrar Todo</button>
         </div>
     </header>
@@ -621,6 +557,8 @@
                     <th class="sortable" onclick="sortTable('turno')">TURNO ↕️</th>
                     <th class="sortable" onclick="sortTable('situacion')">SITUACION ↕️</th>
                     <th>ESTADO DESEMBOLSO</th>
+                    <th>OBSERVACIONES</th>
+                    <th>REFERENCIAS</th>
                     <th>ACCIONES</th>
                 </tr>
             </thead>
@@ -698,6 +636,20 @@
             </div>
             
             <div class="form-group">
+                <label for="observaciones">OBSERVACIONES</label>
+                <textarea id="observaciones" rows="2" placeholder="Notas sobre la visita..."></textarea>
+            </div>
+            <div class="form-group" style="display: flex; gap: 10px;">
+                <div style="flex: 1;">
+                    <label>REF. PERSONAL (Nombre y Teléfono)</label>
+                    <input type="text" id="ref_personal" placeholder="Ej: Juan Perez 999888777">
+                </div>
+                <div style="flex: 1;">
+                    <label>REF. COMERCIAL (Nombre y Teléfono)</label>
+                    <input type="text" id="ref_comercial" placeholder="Ej: Tienda Maria 999666333">
+                </div>
+            </div>
+            <div class="form-group">
                 <label for="situacion">SITUACION</label>
                 <select id="situacion">
                     <option value="Pendiente">Pendiente</option>
@@ -719,6 +671,29 @@
                 <button type="button" id="btn-save-and-add" class="btn" style="flex: 1; background-color: #607d8b; color: white;">Guardar y Agregar Otro</button>
             </div>
         </form>
+    </div>
+</div>
+
+
+<!-- Modal Reprogramar -->
+<div id="reprogram-modal" class="modal">
+    <div class="modal-content" style="max-width: 350px;">
+        <span class="close" onclick="document.getElementById('reprogram-modal').style.display='none'">&times;</span>
+        <h2 style="font-size: 18px; color: var(--primary-dark); margin-bottom: 15px;">📅 Reprogramar Visita</h2>
+        <input type="hidden" id="reprogram-id">
+        <div class="form-group">
+            <label>Nueva Fecha:</label>
+            <input type="date" id="reprogram-date" style="padding: 10px; width: 100%; border-radius: 4px; border: 1px solid #ccc; margin-bottom: 15px;">
+        </div>
+        <div class="form-group">
+            <label>Nuevo Turno (Opcional):</label>
+            <select id="reprogram-turno" style="padding: 10px; width: 100%; border-radius: 4px; border: 1px solid #ccc;">
+                <option value="-">-</option>
+                <option value="Mañana">Mañana</option>
+                <option value="Tarde">Tarde</option>
+            </select>
+        </div>
+        <button onclick="confirmReprogram()" class="btn btn-primary" style="width: 100%; padding: 12px; font-size: 16px;">Guardar Cambios</button>
     </div>
 </div>
 
@@ -754,6 +729,46 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('search-input').value = '';     // Clear search
         document.getElementById('calendar-filter-indicator').style.display = 'flex';
         document.getElementById('cf-details').textContent = `${textDesc} (${type === 'Atendido' ? 'Ya Atendidos' : type})`;
+        
+        // Calcular Resumen Financiero
+        const filtered = clients.filter(c => {
+            if (c.fecha !== date) return false;
+            if (type === 'Mañana' || type === 'Tarde') {
+                return c.turno === type && c.situacion !== 'Atendido';
+            }
+            if (type === 'Atendido') {
+                return c.situacion === 'Atendido' || c.desembolso === 'Desembolsado';
+            }
+            return true;
+        });
+
+        let proyectado = 0;
+        let desembolsado = 0;
+        filtered.forEach(c => {
+            let mStr = String(c.monto || '0').replace(/[^0-9.,-]/g, '');
+            if (mStr.lastIndexOf(',') > mStr.lastIndexOf('.')) mStr = mStr.replace(/\./g, '').replace(',', '.');
+            else mStr = mStr.replace(/,/g, '');
+            const val = parseFloat(mStr) || 0;
+            
+            proyectado += val;
+            if(c.desembolso === 'Desembolsado' || c.situacion === 'Atendido') desembolsado += val;
+        });
+        
+        document.getElementById('cf-proyectado').textContent = 'S/ ' + proyectado.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        document.getElementById('cf-desembolsado').textContent = 'S/ ' + desembolsado.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        
+        // Generar Ruta
+        const btnRoute = document.getElementById('btn-route-day');
+        const lugares = filtered.map(c => c.lugar).filter(l => l && l.trim() !== '-');
+        if (lugares.length > 0 && btnRoute) {
+            btnRoute.style.display = 'block';
+            const baseUrl = 'https://www.google.com/maps/dir/';
+            const routeUrl = baseUrl + lugares.map(l => encodeURIComponent(l)).join('/');
+            btnRoute.onclick = () => window.open(routeUrl, '_blank');
+        } else if (btnRoute) {
+            btnRoute.style.display = 'none';
+        }
+        
         renderTable();
         // Scroll to table safely
         const tableEl = document.querySelector('.table-container') || document.querySelector('table');
@@ -801,11 +816,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const turnoInput = document.getElementById('turno');
     const situacionInput = document.getElementById('situacion');
     const desembolsoInput = document.getElementById('desembolso');
+    const observacionesInput = document.getElementById('observaciones');
+    const refPersonalInput = document.getElementById('ref_personal');
+    const refComercialInput = document.getElementById('ref_comercial');
 
     // Init
     async function initData() {
         loadingIndicator.style.display = 'block';
-        loadingIndicator.textContent = 'Cargando datos desde Google Sheets...';
+        loadingIndicator.textContent = 'Cargando datos...';
+        
+        // Load from local storage first for instant display
+        const localData = localStorage.getItem('agrobanco_clients_offline');
+        if (localData) {
+            clients = JSON.parse(localData);
+            renderTable();
+        }
         
         try {
             const response = await fetch(API_URL);
@@ -899,7 +924,10 @@ document.addEventListener('DOMContentLoaded', () => {
             'FECHA DE VISITA': c.fecha !== '-' ? formatDate(c.fecha) : '',
             'TURNO': c.turno !== '-' && c.turno ? c.turno : '',
             'SITUACION': c.situacion,
-            'ESTADO DESEMBOLSO': c.desembolso !== '-' && c.desembolso ? c.desembolso : ''
+            'ESTADO DESEMBOLSO': c.desembolso !== '-' && c.desembolso ? c.desembolso : '',
+            'OBSERVACIONES': c.observaciones || '',
+            'REF. PERSONAL': c.ref_personal || '',
+            'REF. COMERCIAL': c.ref_comercial || ''
         }));
 
         // Crear hoja de cálculo y libro
@@ -980,6 +1008,12 @@ document.addEventListener('DOMContentLoaded', () => {
             turnoInput.value = '-';
             situacionInput.value = 'Pendiente';
             desembolsoInput.value = '-';
+            observacionesInput.value = '';
+            refPersonalInput.value = '';
+            refComercialInput.value = '';
+            observacionesInput.value = '';
+            refPersonalInput.value = '';
+            refComercialInput.value = '';
             clienteInput.focus();
         });
     }
@@ -995,7 +1029,10 @@ document.addEventListener('DOMContentLoaded', () => {
             fecha: fechaInput.value || '-',
             turno: turnoInput.value,
             situacion: situacionInput.value,
-            desembolso: desembolsoInput.value
+            desembolso: desembolsoInput.value,
+            observaciones: observacionesInput.value.trim() || '',
+            ref_personal: refPersonalInput.value.trim() || '',
+            ref_comercial: refComercialInput.value.trim() || ''
         };
 
         if (idInput.value) {
@@ -1023,6 +1060,103 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Functions
     
+    
+    // IMPORTAR EXCEL
+    const btnImportExcel = document.getElementById('btn-import-excel');
+    if (btnImportExcel) {
+        btnImportExcel.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, {type: 'array'});
+                const sheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[sheetName];
+                const json = XLSX.utils.sheet_to_json(worksheet, {raw: false});
+                
+                let imported = 0;
+                json.forEach(row => {
+                    if (row['CLIENTE'] || row['Cliente'] || row['cliente']) {
+                        clients.push({
+                            id: 'c_' + Date.now() + Math.random().toString(36).substr(2, 5),
+                            cliente: row['CLIENTE'] || row['Cliente'] || row['cliente'] || '',
+                            dni: row['DNI'] || row['Dni'] || row['dni'] || '-',
+                            telefono: row['N° DE TELEFONO'] || row['Teléfono'] || row['Telefono'] || row['telefono'] || '-',
+                            producto: row['PRODUCTO'] || row['Producto'] || row['producto'] || '-',
+                            monto: row['MONTO'] || row['Monto'] || row['monto'] || '-',
+                            lugar: row['LUGAR DE VISITA'] || row['Lugar'] || row['lugar'] || '-',
+                            fecha: row['FECHA DE VISITA'] || row['Fecha'] || row['fecha'] || '-',
+                            turno: row['TURNO'] || row['Turno'] || row['turno'] || '-',
+                            situacion: row['SITUACION'] || row['Situacion'] || row['situacion'] || 'Pendiente',
+                            desembolso: row['ESTADO DESEMBOLSO'] || row['Desembolso'] || '-',
+                            observaciones: row['OBSERVACIONES'] || row['Observaciones'] || '',
+                            ref_personal: row['REF. PERSONAL'] || row['Ref. Personal'] || '',
+                            ref_comercial: row['REF. COMERCIAL'] || row['Ref. Comercial'] || ''
+                        });
+                        imported++;
+                    }
+                });
+                
+                if (imported > 0) {
+                    alert('Se importaron ' + imported + ' clientes exitosamente.');
+                    saveAndRender();
+                } else {
+                    alert('No se encontraron clientes válidos en el archivo Excel.');
+                }
+                btnImportExcel.value = ''; // reset
+            };
+            reader.readAsArrayBuffer(file);
+        });
+    }
+
+    
+    window.openReprogram = function(id) {
+        const idx = clients.findIndex(c => c.id === id);
+        if (idx !== -1) {
+            document.getElementById('reprogram-id').value = id;
+            const c = clients[idx];
+            document.getElementById('reprogram-date').value = (c.fecha && c.fecha !== '-') ? c.fecha : '';
+            document.getElementById('reprogram-turno').value = (c.turno && c.turno !== '-') ? c.turno : '-';
+            document.getElementById('reprogram-modal').style.display = 'block';
+        }
+    };
+    
+    window.confirmReprogram = function() {
+        const id = document.getElementById('reprogram-id').value;
+        const newDate = document.getElementById('reprogram-date').value;
+        const newTurno = document.getElementById('reprogram-turno').value;
+        
+        if (!newDate) {
+            alert('Por favor selecciona una fecha.');
+            return;
+        }
+        
+        const idx = clients.findIndex(c => c.id === id);
+        if (idx !== -1) {
+            clients[idx].fecha = newDate;
+            clients[idx].turno = newTurno;
+            saveAndRender();
+            document.getElementById('reprogram-modal').style.display = 'none';
+        }
+    };
+
+    
+    window.isGroupedByLocation = false;
+    window.toggleGroupLocation = function() {
+        window.isGroupedByLocation = !window.isGroupedByLocation;
+        const btn = document.getElementById('btn-group-location');
+        if (window.isGroupedByLocation) {
+            btn.style.background = '#e91e63'; // pink active
+            btn.innerHTML = '❌ Quitar Agrupación';
+        } else {
+            btn.style.background = '#607d8b'; // normal
+            btn.innerHTML = '🗺️ Agrupar por Zona';
+        }
+        renderTable();
+    };
+
     // --- NUEVAS MEJORAS JS ---
     // 1. Dark Mode Toggle
     const btnToggleDark = document.getElementById('btn-toggle-dark');
@@ -1217,7 +1351,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 if (c.fecha !== window.calendarFilter.date) return false;
                 
-                if (window.calendarFilter.type === 'Atendido') {
+                if (window.calendarFilter.type === 'Todo') {
+                    return true;
+                } else if (window.calendarFilter.type === 'Atendido') {
                     return isReallyAtendido;
                 } else {
                     // Mañana o Tarde (Pendientes)
@@ -1228,6 +1364,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         filtered.sort((a, b) => {
+            if (window.isGroupedByLocation) {
+                const locA = (a.lugar || 'Z_Sin Zona').trim().toUpperCase();
+                const locB = (b.lugar || 'Z_Sin Zona').trim().toUpperCase();
+                if (locA < locB) return -1;
+                if (locA > locB) return 1;
+            }
+            
             if (a.situacion === 'Atendido' && b.situacion !== 'Atendido') return 1;
             if (a.situacion !== 'Atendido' && b.situacion === 'Atendido') return -1;
             
@@ -1436,7 +1579,18 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             emptyState.style.display = 'none';
             
+            let currentGroupLoc = null;
             filtered.forEach(c => {
+                if (window.isGroupedByLocation) {
+                    const cLoc = (c.lugar || 'Sin Zona asignada').trim().toUpperCase();
+                    if (cLoc !== currentGroupLoc) {
+                        const trSep = document.createElement('tr');
+                        trSep.innerHTML = `<td colspan="13" style="background-color: var(--primary-color, #1b5e20); color: white; font-weight: bold; padding: 12px; text-align: center; font-size: 15px; border-radius: 4px; margin-bottom: 10px;">📍 ZONA: ${cLoc}</td>`;
+                        tbody.appendChild(trSep);
+                        currentGroupLoc = cLoc;
+                    }
+                }
+            
                 const tr = document.createElement('tr');
                 
                 const todayForHighlight = new Date();
@@ -1458,7 +1612,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (c._isOverdue) tr.className = 'row-overdue';
                 
                 const waMsg = encodeURIComponent(`Hola ${c.cliente}, soy tu asesor de Agrobanco. Te escribo para confirmar nuestra cita de hoy${c.turno && c.turno !== '-' ? ' en la ' + c.turno : ''}. ¿Me confirmas?`);
-                let quickActions = '';
+                let quickActions = `<button class="btn" style="background-color: #ff9800; color: white; width: 100%; margin-bottom: 5px;" onclick="event.stopPropagation(); openReprogram('${c.id}')">📅 Reprogramar</button>`;
                 if (c.situacion !== 'Atendido') {
                     quickActions += `<button class="btn" style="background-color: var(--success-color); color: white; width: 100%; margin-bottom: 5px;" onclick="event.stopPropagation(); quickMark('${c.id}', 'Atendido', null)">✅ Atendido</button>`;
                 } else if (c.desembolso !== 'Desembolsado') {
@@ -1484,6 +1638,23 @@ document.addEventListener('DOMContentLoaded', () => {
                     <td>${c.turno !== '-' && c.turno ? c.turno : '-'}</td>
                     <td><span class="status-badge ${statusClass}">${situacionLabel}</span></td>
                     <td>${c.desembolso !== '-' && c.desembolso ? c.desembolso : '-'}</td>
+                    <td><div style="max-height:60px; overflow-y:auto; font-size:11px; color:#555;">${c.observaciones || '-'}</div></td>
+                    <td>
+                        <div style="font-size:11px; color:#444; margin-bottom: 4px;">
+                            <strong>👤 Per:</strong> ${c.ref_personal || '-'}
+                            ${(() => {
+                                const m = (c.ref_personal || '').match(/\b9\d{8}\b/);
+                                return m ? ` <a href="tel:${m[0]}" class="btn-icon" style="padding:1px 5px; font-size:10px;" onclick="event.stopPropagation();">📞 Llamar</a>` : '';
+                            })()}
+                        </div>
+                        <div style="font-size:11px; color:#444;">
+                            <strong>🏪 Com:</strong> ${c.ref_comercial || '-'}
+                            ${(() => {
+                                const m = (c.ref_comercial || '').match(/\b9\d{8}\b/);
+                                return m ? ` <a href="tel:${m[0]}" class="btn-icon" style="padding:1px 5px; font-size:10px;" onclick="event.stopPropagation();">📞 Llamar</a>` : '';
+                            })()}
+                        </div>
+                    </td>
                     <td class="action-buttons">
                         ${quickActions}
                         <div style="display: flex; gap: 5px;">
@@ -1515,6 +1686,9 @@ document.addEventListener('DOMContentLoaded', () => {
             turnoInput.value = client.turno || '-';
             situacionInput.value = client.situacion;
             desembolsoInput.value = client.desembolso || '-';
+            observacionesInput.value = client.observaciones || '';
+            refPersonalInput.value = client.ref_personal || '';
+            refComercialInput.value = client.ref_comercial || '';
         } else {
             modalTitle.textContent = 'Agregar Nuevo Cliente';
             clientForm.reset();
@@ -1522,6 +1696,12 @@ document.addEventListener('DOMContentLoaded', () => {
             turnoInput.value = '-';
             situacionInput.value = 'Pendiente';
             desembolsoInput.value = '-';
+            observacionesInput.value = '';
+            refPersonalInput.value = '';
+            refComercialInput.value = '';
+            observacionesInput.value = '';
+            refPersonalInput.value = '';
+            refComercialInput.value = '';
         }
         
         checkSaturation();
@@ -1609,7 +1789,8 @@ document.addEventListener('DOMContentLoaded', () => {
         loadingIndicator.textContent = 'Guardando cambios en Google Sheets...';
         
         try {
-            await fetch(API_URL, {
+            await localStorage.setItem('agrobanco_clients_offline', JSON.stringify(clients));
+            fetch(API_URL, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'text/plain;charset=utf-8',
@@ -1729,7 +1910,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const card = document.createElement('div');
             card.className = `calendar-card ${isToday ? 'today' : ''}`;
             card.innerHTML = `
-                <h3>${dayName} ${dayNum} ${monthName}</h3>
+                <h3 style="cursor: pointer; text-decoration: underline;" onclick="setCalendarFilter('${day.date}', 'Todo', '${dayName} ${dayNum}')" title="Ver TODO el día">${dayName} ${dayNum} ${monthName}</h3>
                 ${overdueWarning}
                 <div style="font-size: 12px; margin-bottom: 8px; color: #555; border-bottom: 1px solid #eee; padding-bottom: 5px; line-height: 1.4;">
                     Pendientes: <strong>${totalVisits}</strong><br>
