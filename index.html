@@ -615,8 +615,20 @@
             </div>
             
             <div class="form-group">
-                <label for="dni">DNI</label>
-                <input type="text" id="dni">
+                <label for="dni">DNI DEL TITULAR</label>
+                <input type="text" id="dni" placeholder="DNI Principal">
+            </div>
+            
+            <div style="background: rgba(0,0,0,0.02); border: 1px dashed var(--border-color); padding: 10px; border-radius: 6px; margin-bottom: 15px;">
+                <label style="font-weight: bold; font-size: 11px; color: #666; margin-bottom: 5px; display: block;">👥 CÓNYUGE / AVAL / GARANTE (Opcional)</label>
+                <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                    <input type="text" id="aval1_nombre" placeholder="Nombre (Ej: Esposa / Aval 1)" style="flex: 2; padding: 8px; font-size: 13px;">
+                    <input type="text" id="aval1_dni" placeholder="DNI Adicional 1" style="flex: 1; padding: 8px; font-size: 13px;">
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <input type="text" id="aval2_nombre" placeholder="Nombre (Ej: Aval 2 / Garante)" style="flex: 2; padding: 8px; font-size: 13px;">
+                    <input type="text" id="aval2_dni" placeholder="DNI Adicional 2" style="flex: 1; padding: 8px; font-size: 13px;">
+                </div>
             </div>
             
             <div class="form-group">
@@ -642,11 +654,31 @@
             </div>
             
             <div class="form-group">
-                <label for="lugar">LUGAR DE VISITA</label>
-                <input type="text" id="lugar" list="lugares-list" autocomplete="off">
-                <datalist id="lugares-list">
-                    <!-- Opciones generadas dinámicamente -->
-                </datalist>
+                <label for="lugar">LUGAR DE VISITA Y MAPAS GPS</label>
+                <input type="text" id="lugar" list="lugares-list" autocomplete="off" placeholder="Nombre del lugar..." style="margin-bottom: 8px;">
+                <datalist id="lugares-list"></datalist>
+                
+                <div style="display: flex; gap: 5px;">
+                    <label for="upload-gps-dom" class="btn" style="background: #0288d1; color: white; padding: 6px; margin: 0; cursor: pointer; flex: 1; text-align: center; border-radius: 4px; font-size: 12px;">🏠 Foto Domicilio</label>
+                    <input type="file" id="upload-gps-dom" accept="image/*" style="display: none;">
+                    
+                    <label for="upload-gps-cha" class="btn" style="background: #388e3c; color: white; padding: 6px; margin: 0; cursor: pointer; flex: 1; text-align: center; border-radius: 4px; font-size: 12px;">🌾 Foto Chacra</label>
+                    <input type="file" id="upload-gps-cha" accept="image/*" style="display: none;">
+                </div>
+                
+                <div style="display: flex; gap: 5px; margin-top: 5px;">
+                    <div style="flex: 1; text-align: center;">
+                        <div id="gps-status-dom" style="font-size: 11px; color: #666;"></div>
+                        <a id="preview-dom" href="#" target="_blank" style="display: none; font-size: 10px; color: #0288d1; text-decoration: underline;">Ver Domicilio</a>
+                    </div>
+                    <div style="flex: 1; text-align: center;">
+                        <div id="gps-status-cha" style="font-size: 11px; color: #666;"></div>
+                        <a id="preview-cha" href="#" target="_blank" style="display: none; font-size: 10px; color: #388e3c; text-decoration: underline;">Ver Chacra</a>
+                    </div>
+                </div>
+                
+                <input type="hidden" id="gps-dom">
+                <input type="hidden" id="gps-cha">
             </div>
             
             <div class="form-group">
@@ -836,6 +868,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const idInput = document.getElementById('client-id');
     const clienteInput = document.getElementById('cliente');
     const dniInput = document.getElementById('dni');
+    const aval1Nombre = document.getElementById('aval1_nombre');
+    const aval1Dni = document.getElementById('aval1_dni');
+    const aval2Nombre = document.getElementById('aval2_nombre');
+    const aval2Dni = document.getElementById('aval2_dni');
     const telefonoInput = document.getElementById('telefono');
     const productoInput = document.getElementById('producto');
     const montoInput = document.getElementById('monto');
@@ -953,6 +989,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const dataToExport = clients.map(c => ({
             'CLIENTE': c.cliente,
             'DNI': c.dni !== '-' ? c.dni : '',
+            'CÓNYUGE/AVAL 1 (NOMBRE)': c.aval1_nombre || '',
+            'CÓNYUGE/AVAL 1 (DNI)': c.aval1_dni || '',
+            'GARANTE/AVAL 2 (NOMBRE)': c.aval2_nombre || '',
+            'GARANTE/AVAL 2 (DNI)': c.aval2_dni || '',
             'N° DE TELEFONO': c.telefono !== '-' ? c.telefono : '',
             'PRODUCTO': c.producto !== '-' ? c.producto : '',
             'MONTO': c.monto !== '-' ? c.monto : '',
@@ -1058,6 +1098,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const clientData = {
             cliente: clienteInput.value.trim(),
             dni: dniInput.value.trim() || '-',
+            aval1_nombre: aval1Nombre.value.trim(),
+            aval1_dni: aval1Dni.value.trim(),
+            aval2_nombre: aval2Nombre.value.trim(),
+            aval2_dni: aval2Dni.value.trim(),
             telefono: telefonoInput.value.trim() || '-',
             producto: productoInput.value.trim() || '-',
             monto: montoInput.value.trim() || '-',
@@ -1851,6 +1895,10 @@ document.addEventListener('DOMContentLoaded', () => {
             idInput.value = client.id;
             clienteInput.value = client.cliente;
             dniInput.value = client.dni === '-' ? '' : client.dni;
+            aval1Nombre.value = client.aval1_nombre || '';
+            aval1Dni.value = client.aval1_dni || '';
+            aval2Nombre.value = client.aval2_nombre || '';
+            aval2Dni.value = client.aval2_dni || '';
             telefonoInput.value = client.telefono === '-' ? '' : client.telefono;
             productoInput.value = client.producto === '-' || !client.producto ? '' : client.producto;
             montoInput.value = client.monto === '-' || !client.monto ? '' : client.monto;
