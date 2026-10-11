@@ -525,13 +525,32 @@
         </div>
     </div>
 
+    <!-- BARRA DE PROGRESO -->
+    <div style="margin-bottom: 20px;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-weight: bold; color: var(--primary-dark); font-size: 14px;">
+            <span>Meta del Mes - Atenciones: <span id="progress-text-atendidos">0%</span></span>
+            <span>Meta del Mes - Desembolsos: <span id="progress-text-desembolsados">0%</span></span>
+        </div>
+        <div style="width: 100%; background-color: #e0e0e0; height: 16px; border-radius: 8px; overflow: hidden; display: flex;">
+            <div id="progress-bar-atendidos" style="height: 100%; background-color: #2196f3; width: 0%; transition: width 0.5s;"></div>
+            <div id="progress-bar-desembolsados" style="height: 100%; background-color: #4caf50; width: 0%; transition: width 0.5s;"></div>
+        </div>
+    </div>
+
     <!-- CALENDARIO INTERACTIVO -->
-    <h2 style="font-size: 16px; color: var(--primary-dark); margin-bottom: 5px;">Calendario Semanal (Lunes a Domingo)</h2>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+        <h2 style="font-size: 16px; color: var(--primary-dark); margin: 0;">Calendario Semanal</h2>
+        <div>
+            <button onclick="changeCalendarWeek(-1)" class="btn" style="padding: 4px 8px; font-size: 12px; background: #eee; color: #333; border: 1px solid #ccc;">⬅️ Anterior</button>
+            <button onclick="changeCalendarWeek(0)" class="btn" style="padding: 4px 8px; font-size: 12px; background: #eee; color: #333; border: 1px solid #ccc;">Hoy</button>
+            <button onclick="changeCalendarWeek(1)" class="btn" style="padding: 4px 8px; font-size: 12px; background: #eee; color: #333; border: 1px solid #ccc;">Siguiente ➡️</button>
+        </div>
+    </div>
     <div class="calendar-dashboard" id="calendar-dashboard">
         <!-- Tarjetas de calendario generadas por JS -->
     </div>
 
-    <div id="calendar-filter-indicator" style="display: none; background-color: #fff3e0; color: #e65100; padding: 12px; border-radius: 8px; border: 1px solid #ffcc80; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+    <div id="calendar-filter-indicator" style="display: none; background-color: #fff3e0; color: #e65100; padding: 12px; border-radius: 8px; border: 1px solid #ffcc80; margin-bottom: 15px; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
         <div><strong>🔍 Filtrando desde el Calendario:</strong> Mostrando clientes para <span id="cf-details" style="font-weight: bold; color: #c2185b;">---</span></div>
         <button onclick="clearCalendarFilter()" style="background: #e65100; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-weight: bold;">✕ Quitar Filtro</button>
     </div>
@@ -1083,6 +1102,52 @@ document.addEventListener('DOMContentLoaded', () => {
         const elCountDesembolsados = document.getElementById('count-desembolsados');
         const elTotalSinDesembolsar = document.getElementById('total-sindesembolsar');
         const elCountSinDesembolsar = document.getElementById('count-sindesembolsar');
+
+        // Calcular metas mensuales (incluyendo pendientes de meses pasados)
+        const currentMonthPrefixMeta = String(today.getFullYear()) + '-' + String(today.getMonth() + 1).padStart(2, '0');
+        let metaTotal = 0;
+        let metaAtendidos = 0;
+        let metaDesembolsados = 0;
+
+        clients.forEach(c => {
+            const isPast = c.fecha && c.fecha < currentMonthPrefixMeta + '-00';
+            const isThisMonth = c.fecha && c.fecha.startsWith(currentMonthPrefixMeta);
+            const stat = c.situacion ? c.situacion.trim().toLowerCase() : '';
+            const des = c.desembolso ? c.desembolso.trim().toLowerCase() : '';
+            const isReallyAtendido = (stat === 'atendido' || des === 'desembolsado');
+            
+            if (isThisMonth) {
+                metaTotal++;
+                if (isReallyAtendido) metaAtendidos++;
+                if (des === 'desembolsado') metaDesembolsados++;
+            } else if (isPast && !isReallyAtendido) {
+                // Pasa para el próximo mes (se arrastra al actual)
+                metaTotal++;
+            }
+        });
+
+        let pctAtendidos = 0;
+        let pctDesembolsados = 0;
+        if (metaTotal > 0) {
+            pctAtendidos = Math.round((metaAtendidos / metaTotal) * 100);
+            pctDesembolsados = Math.round((metaDesembolsados / metaTotal) * 100);
+        }
+
+        const elBarAtendidos = document.getElementById('progress-bar-atendidos');
+        const elBarDesembolsados = document.getElementById('progress-bar-desembolsados');
+        const elTxtAtendidos = document.getElementById('progress-text-atendidos');
+        const elTxtDesembolsados = document.getElementById('progress-text-desembolsados');
+
+        if (elBarAtendidos) {
+            elBarAtendidos.style.width = pctAtendidos + '%';
+            elTxtAtendidos.textContent = pctAtendidos + '% (' + metaAtendidos + '/' + metaTotal + ')';
+        }
+        if (elBarDesembolsados) {
+            elBarDesembolsados.style.width = pctDesembolsados + '%';
+            elTxtDesembolsados.textContent = pctDesembolsados + '% (' + metaDesembolsados + '/' + metaTotal + ')';
+        }
+
+
         
         const formatMoney = (val) => 'S/ ' + val.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
@@ -1364,17 +1429,27 @@ document.addEventListener('DOMContentLoaded', () => {
         loadingIndicator.style.display = 'none';
     }
 
+    let calendarWeekOffset = 0;
+
+    window.changeCalendarWeek = function(direction) {
+        if (direction === 0) {
+            calendarWeekOffset = 0;
+        } else {
+            calendarWeekOffset += direction;
+        }
+        renderCalendarDashboard();
+    };
+
     function renderCalendarDashboard() {
         const dashboard = document.getElementById('calendar-dashboard');
         if (!dashboard) return;
 
-        // Obtener la semana actual (Lunes a Domingo)
         const today = new Date();
         const currentDayOfWeek = today.getDay(); // 0 = Domingo, 1 = Lunes
         const diffToMonday = currentDayOfWeek === 0 ? -6 : 1 - currentDayOfWeek;
         
         const monday = new Date(today);
-        monday.setDate(today.getDate() + diffToMonday);
+        monday.setDate(today.getDate() + diffToMonday + (calendarWeekOffset * 7));
 
         const days = [];
         for (let i = 0; i < 7; i++) {
@@ -1535,6 +1610,7 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 </body>
 </html>
+
 
 
 
