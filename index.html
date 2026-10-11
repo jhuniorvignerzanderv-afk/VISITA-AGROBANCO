@@ -576,11 +576,11 @@
             <thead>
                 <tr>
                     <th class="sortable" onclick="sortTable('cliente')">CLIENTE ↕️</th>
-                    <th class="sortable" onclick="sortTable('dni')">DNI ↕️</th>
+                    <th class="sortable" onclick="sortTable('dni')">DNI / AVALES ↕️</th>
                     <th>N° DE TELEFONO</th>
                     <th class="sortable" onclick="sortTable('producto')">PRODUCTO ↕️</th>
                     <th class="sortable" onclick="sortTable('monto')">MONTO ↕️</th>
-                    <th class="sortable" onclick="sortTable('lugar')">LUGAR DE VISITA ↕️</th>
+                    <th class="sortable" onclick="sortTable('lugar')">LUGAR / GPS ↕️</th>
                     <th class="sortable" onclick="sortTable('fecha')">FECHA DE VISITA ↕️</th>
                     <th class="sortable" onclick="sortTable('turno')">TURNO ↕️</th>
                     <th class="sortable" onclick="sortTable('situacion')">SITUACION ↕️</th>
@@ -619,15 +619,34 @@
                 <input type="text" id="dni" placeholder="DNI Principal">
             </div>
             
-            <div style="background: rgba(0,0,0,0.02); border: 1px dashed var(--border-color); padding: 10px; border-radius: 6px; margin-bottom: 15px;">
-                <label style="font-weight: bold; font-size: 11px; color: #666; margin-bottom: 5px; display: block;">👥 CÓNYUGE / AVAL / GARANTE (Opcional)</label>
-                <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-                    <input type="text" id="aval1_nombre" placeholder="Nombre (Ej: Esposa / Aval 1)" style="flex: 2; padding: 8px; font-size: 13px;">
-                    <input type="text" id="aval1_dni" placeholder="DNI Adicional 1" style="flex: 1; padding: 8px; font-size: 13px;">
+            <div style="background: rgba(46, 125, 50, 0.05); border: 1px dashed var(--primary-color); padding: 12px; border-radius: 6px; margin-bottom: 15px;">
+                <label style="font-weight: bold; font-size: 12px; color: var(--primary-color); margin-bottom: 8px; display: block;">👥 CÓNYUGE Y AVALES (Opcional)</label>
+                
+                <!-- Cónyuge -->
+                <div style="margin-bottom: 8px;">
+                    <span style="font-size: 11px; font-weight: 600; color: #555;">💍 Cónyuge (Esposo/a):</span>
+                    <div style="display: flex; gap: 8px; margin-top: 3px;">
+                        <input type="text" id="conyuge_nombre" placeholder="Nombre completo del Cónyuge" style="flex: 2; padding: 7px; font-size: 13px;">
+                        <input type="text" id="conyuge_dni" placeholder="DNI Cónyuge" style="flex: 1; padding: 7px; font-size: 13px;">
+                    </div>
                 </div>
-                <div style="display: flex; gap: 8px;">
-                    <input type="text" id="aval2_nombre" placeholder="Nombre (Ej: Aval 2 / Garante)" style="flex: 2; padding: 8px; font-size: 13px;">
-                    <input type="text" id="aval2_dni" placeholder="DNI Adicional 2" style="flex: 1; padding: 8px; font-size: 13px;">
+
+                <!-- Aval 1 -->
+                <div style="margin-bottom: 8px;">
+                    <span style="font-size: 11px; font-weight: 600; color: #555;">🤝 Aval 1 / Garante:</span>
+                    <div style="display: flex; gap: 8px; margin-top: 3px;">
+                        <input type="text" id="aval1_nombre" placeholder="Nombre completo Aval 1" style="flex: 2; padding: 7px; font-size: 13px;">
+                        <input type="text" id="aval1_dni" placeholder="DNI Aval 1" style="flex: 1; padding: 7px; font-size: 13px;">
+                    </div>
+                </div>
+
+                <!-- Aval 2 -->
+                <div>
+                    <span style="font-size: 11px; font-weight: 600; color: #555;">🤝 Aval 2 / Segundo Garante:</span>
+                    <div style="display: flex; gap: 8px; margin-top: 3px;">
+                        <input type="text" id="aval2_nombre" placeholder="Nombre completo Aval 2" style="flex: 2; padding: 7px; font-size: 13px;">
+                        <input type="text" id="aval2_dni" placeholder="DNI Aval 2" style="flex: 1; padding: 7px; font-size: 13px;">
+                    </div>
                 </div>
             </div>
             
@@ -653,27 +672,27 @@
                 <input type="number" id="monto" step="0.01">
             </div>
             
-            <div class="form-group">
-                <label for="lugar">LUGAR DE VISITA Y MAPAS GPS</label>
-                <input type="text" id="lugar" list="lugares-list" autocomplete="off" placeholder="Nombre del lugar..." style="margin-bottom: 8px;">
+            <div class="form-group" style="background: rgba(2, 136, 209, 0.04); border: 1px solid #b3e5fc; padding: 12px; border-radius: 6px;">
+                <label for="lugar" style="color: #0277bd; font-weight: bold; margin-bottom: 6px; display: block;">📍 LUGAR Y FOTOS GPS (CASA Y TERRENO)</label>
+                <input type="text" id="lugar" list="lugares-list" autocomplete="off" placeholder="Nombre del lugar / Caserío / Predio..." style="margin-bottom: 8px;">
                 <datalist id="lugares-list"></datalist>
                 
-                <div style="display: flex; gap: 5px;">
-                    <label for="upload-gps-dom" class="btn" style="background: #0288d1; color: white; padding: 6px; margin: 0; cursor: pointer; flex: 1; text-align: center; border-radius: 4px; font-size: 12px;">🏠 Foto Domicilio</label>
+                <div style="display: flex; gap: 8px;">
+                    <label for="upload-gps-dom" class="btn" style="background: #0288d1; color: white; padding: 8px 6px; margin: 0; cursor: pointer; flex: 1; text-align: center; border-radius: 4px; font-size: 12px; font-weight: bold;">📷 Foto Casa / Domicilio</label>
                     <input type="file" id="upload-gps-dom" accept="image/*" style="display: none;">
                     
-                    <label for="upload-gps-cha" class="btn" style="background: #388e3c; color: white; padding: 6px; margin: 0; cursor: pointer; flex: 1; text-align: center; border-radius: 4px; font-size: 12px;">🌾 Foto Chacra</label>
+                    <label for="upload-gps-cha" class="btn" style="background: #388e3c; color: white; padding: 8px 6px; margin: 0; cursor: pointer; flex: 1; text-align: center; border-radius: 4px; font-size: 12px; font-weight: bold;">📷 Foto Terreno / Parcela</label>
                     <input type="file" id="upload-gps-cha" accept="image/*" style="display: none;">
                 </div>
                 
-                <div style="display: flex; gap: 5px; margin-top: 5px;">
+                <div style="display: flex; gap: 8px; margin-top: 6px;">
                     <div style="flex: 1; text-align: center;">
                         <div id="gps-status-dom" style="font-size: 11px; color: #666;"></div>
-                        <a id="preview-dom" href="#" target="_blank" style="display: none; font-size: 10px; color: #0288d1; text-decoration: underline;">Ver Domicilio</a>
+                        <a id="preview-dom" href="#" target="_blank" style="display: none; font-size: 11px; color: #0288d1; font-weight: bold; text-decoration: underline;">🗺️ Ver Casa en Maps</a>
                     </div>
                     <div style="flex: 1; text-align: center;">
                         <div id="gps-status-cha" style="font-size: 11px; color: #666;"></div>
-                        <a id="preview-cha" href="#" target="_blank" style="display: none; font-size: 10px; color: #388e3c; text-decoration: underline;">Ver Chacra</a>
+                        <a id="preview-cha" href="#" target="_blank" style="display: none; font-size: 11px; color: #388e3c; font-weight: bold; text-decoration: underline;">🗺️ Ver Terreno en Maps</a>
                     </div>
                 </div>
                 
@@ -868,6 +887,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const idInput = document.getElementById('client-id');
     const clienteInput = document.getElementById('cliente');
     const dniInput = document.getElementById('dni');
+    const conyugeNombre = document.getElementById('conyuge_nombre');
+    const conyugeDni = document.getElementById('conyuge_dni');
     const aval1Nombre = document.getElementById('aval1_nombre');
     const aval1Dni = document.getElementById('aval1_dni');
     const aval2Nombre = document.getElementById('aval2_nombre');
@@ -988,15 +1009,19 @@ document.addEventListener('DOMContentLoaded', () => {
         // Preparar datos para Excel
         const dataToExport = clients.map(c => ({
             'CLIENTE': c.cliente,
-            'DNI': c.dni !== '-' ? c.dni : '',
-            'CÓNYUGE/AVAL 1 (NOMBRE)': c.aval1_nombre || '',
-            'CÓNYUGE/AVAL 1 (DNI)': c.aval1_dni || '',
-            'GARANTE/AVAL 2 (NOMBRE)': c.aval2_nombre || '',
-            'GARANTE/AVAL 2 (DNI)': c.aval2_dni || '',
+            'DNI TITULAR': c.dni !== '-' ? c.dni : '',
+            'CÓNYUGE (NOMBRE)': c.conyuge_nombre || '',
+            'CÓNYUGE (DNI)': c.conyuge_dni || '',
+            'AVAL 1 (NOMBRE)': c.aval1_nombre || '',
+            'AVAL 1 (DNI)': c.aval1_dni || '',
+            'AVAL 2 (NOMBRE)': c.aval2_nombre || '',
+            'AVAL 2 (DNI)': c.aval2_dni || '',
             'N° DE TELEFONO': c.telefono !== '-' ? c.telefono : '',
             'PRODUCTO': c.producto !== '-' ? c.producto : '',
             'MONTO': c.monto !== '-' ? c.monto : '',
             'LUGAR DE VISITA': c.lugar !== '-' && c.lugar ? c.lugar : '',
+            'GPS CASA (DOMICILIO)': c.gps_dom || '',
+            'GPS TERRENO (CHACRA)': c.gps_cha || '',
             'FECHA DE VISITA': c.fecha !== '-' ? formatDate(c.fecha) : '',
             'TURNO': c.turno !== '-' && c.turno ? c.turno : '',
             'SITUACION': c.situacion,
@@ -1081,12 +1106,21 @@ document.addEventListener('DOMContentLoaded', () => {
             // Reset for next entry
             clientForm.reset();
             idInput.value = '';
+            conyugeNombre.value = '';
+            conyugeDni.value = '';
+            aval1Nombre.value = '';
+            aval1Dni.value = '';
+            aval2Nombre.value = '';
+            aval2Dni.value = '';
+            gpsDomInput.value = '';
+            gpsChaInput.value = '';
+            previewDom.style.display = 'none';
+            previewCha.style.display = 'none';
+            gpsStatusDom.textContent = '';
+            gpsStatusCha.textContent = '';
             turnoInput.value = '-';
             situacionInput.value = 'Pendiente';
             desembolsoInput.value = '-';
-            observacionesInput.value = '';
-            refPersonalInput.value = '';
-            refComercialInput.value = '';
             observacionesInput.value = '';
             refPersonalInput.value = '';
             refComercialInput.value = '';
@@ -1098,6 +1132,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const clientData = {
             cliente: clienteInput.value.trim(),
             dni: dniInput.value.trim() || '-',
+            conyuge_nombre: conyugeNombre.value.trim(),
+            conyuge_dni: conyugeDni.value.trim(),
             aval1_nombre: aval1Nombre.value.trim(),
             aval1_dni: aval1Dni.value.trim(),
             aval2_nombre: aval2Nombre.value.trim(),
@@ -1342,8 +1378,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
-    if (uploadGpsDom) handleGPSUpload(uploadGpsDom, gpsStatusDom, gpsDomInput, previewDom, "Domicilio");
-    if (uploadGpsCha) handleGPSUpload(uploadGpsCha, gpsStatusCha, gpsChaInput, previewCha, "Chacra");
+    if (uploadGpsDom) handleGPSUpload(uploadGpsDom, gpsStatusDom, gpsDomInput, previewDom, "Casa");
+    if (uploadGpsCha) handleGPSUpload(uploadGpsCha, gpsStatusCha, gpsChaInput, previewCha, "Terreno");
 
     // --- NUEVAS MEJORAS JS ---
     // 1. Dark Mode Toggle
@@ -1501,7 +1537,14 @@ document.addEventListener('DOMContentLoaded', () => {
         endOfWeek.setHours(23,59,59,999);
 
         let filtered = clients.filter(c => {
-            const matchesSearch = String(c.cliente || '').toLowerCase().includes(term) || String(c.dni || '').toLowerCase().includes(term);
+            const matchesSearch = String(c.cliente || '').toLowerCase().includes(term) || 
+                                  String(c.dni || '').toLowerCase().includes(term) ||
+                                  String(c.conyuge_nombre || '').toLowerCase().includes(term) ||
+                                  String(c.conyuge_dni || '').toLowerCase().includes(term) ||
+                                  String(c.aval1_nombre || '').toLowerCase().includes(term) ||
+                                  String(c.aval1_dni || '').toLowerCase().includes(term) ||
+                                  String(c.aval2_nombre || '').toLowerCase().includes(term) ||
+                                  String(c.aval2_dni || '').toLowerCase().includes(term);
             
             let isOverdue = false;
             let isThisWeek = false;
@@ -1837,8 +1880,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 tr.innerHTML = `
                     <td><strong>${c.cliente}</strong></td>
-                    <td>${c.dni}</td>
-                                        <td>
+                    <td>
+                        <strong style="color: #1b5e20; font-size: 13px;">${c.dni || '-'}</strong>
+                        ${c.conyuge_dni ? `<div style="font-size:10px; color:#2e7d32; margin-top:2px; font-weight:600;">💍 ${c.conyuge_nombre ? c.conyuge_nombre + ': ' : 'Cónyuge: '}${c.conyuge_dni}</div>` : ''}
+                        ${c.aval1_dni ? `<div style="font-size:10px; color:#555; margin-top:2px;">🤝 ${c.aval1_nombre ? c.aval1_nombre + ': ' : 'Aval 1: '}${c.aval1_dni}</div>` : ''}
+                        ${c.aval2_dni ? `<div style="font-size:10px; color:#555; margin-top:2px;">🤝 ${c.aval2_nombre ? c.aval2_nombre + ': ' : 'Aval 2: '}${c.aval2_dni}</div>` : ''}
+                    </td>
+                    <td>
                         ${c.telefono}
                         ${(c.telefono && c.telefono !== '-') ? `
                             <div style="margin-top: 5px; display: flex; gap: 5px;">
@@ -1849,7 +1897,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     </td>
                     <td>${c.producto || '-'}</td>
                     <td>${c.monto || '-'}</td>
-                    <td>${(c.lugar && c.lugar !== '-') ? `<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(c.lugar)}" target="_blank" onclick="event.stopPropagation();" style="color: #1565c0; text-decoration: none; font-weight: bold;">📍 ${c.lugar}</a>` : '-'}</td>
+                    <td>
+                        <div style="font-weight: 600; font-size: 12px; margin-bottom: 4px; color: #333;">${(c.lugar && c.lugar !== '-') ? c.lugar : '-'}</div>
+                        <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+                            ${c.gps_dom ? `<a href="${c.gps_dom}" target="_blank" style="background:#0288d1; color:white; padding:3px 7px; border-radius:4px; text-decoration:none; font-size:10.5px; font-weight:bold; box-shadow:0 1px 3px rgba(0,0,0,0.2);" onclick="event.stopPropagation();">🏠 Casa</a>` : ''}
+                            ${c.gps_cha ? `<a href="${c.gps_cha}" target="_blank" style="background:#388e3c; color:white; padding:3px 7px; border-radius:4px; text-decoration:none; font-size:10.5px; font-weight:bold; box-shadow:0 1px 3px rgba(0,0,0,0.2);" onclick="event.stopPropagation();">🌱 Terreno</a>` : ''}
+                            ${!c.gps_dom && !c.gps_cha && (c.lugar && c.lugar !== '-') ? `<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(c.lugar)}" target="_blank" style="color: #1565c0; text-decoration: none; font-size: 11px; font-weight: bold;" onclick="event.stopPropagation();">📍 Ver Mapa</a>` : ''}
+                        </div>
+                    </td>
                     <td style="${c._isOverdue ? 'color: var(--danger-color); font-weight: bold;' : ''}">${c.fecha !== '-' ? formatDate(c.fecha) : 'Sin programar'}</td>
                     <td>${c.turno !== '-' && c.turno ? c.turno : '-'}</td>
                     <td><span class="status-badge ${statusClass}">${situacionLabel}</span></td>
@@ -1895,6 +1950,8 @@ document.addEventListener('DOMContentLoaded', () => {
             idInput.value = client.id;
             clienteInput.value = client.cliente;
             dniInput.value = client.dni === '-' ? '' : client.dni;
+            conyugeNombre.value = client.conyuge_nombre || '';
+            conyugeDni.value = client.conyuge_dni || '';
             aval1Nombre.value = client.aval1_nombre || '';
             aval1Dni.value = client.aval1_dni || '';
             aval2Nombre.value = client.aval2_nombre || '';
@@ -1903,6 +1960,30 @@ document.addEventListener('DOMContentLoaded', () => {
             productoInput.value = client.producto === '-' || !client.producto ? '' : client.producto;
             montoInput.value = client.monto === '-' || !client.monto ? '' : client.monto;
             lugarInput.value = client.lugar === '-' || !client.lugar ? '' : client.lugar;
+            
+            // GPS Casa y Terreno
+            gpsDomInput.value = client.gps_dom || '';
+            if (client.gps_dom) {
+                previewDom.href = client.gps_dom;
+                previewDom.style.display = 'inline-block';
+                gpsStatusDom.textContent = '✅ Casa guardada';
+                gpsStatusDom.style.color = '#0288d1';
+            } else {
+                previewDom.style.display = 'none';
+                gpsStatusDom.textContent = '';
+            }
+            
+            gpsChaInput.value = client.gps_cha || '';
+            if (client.gps_cha) {
+                previewCha.href = client.gps_cha;
+                previewCha.style.display = 'inline-block';
+                gpsStatusCha.textContent = '✅ Terreno guardado';
+                gpsStatusCha.style.color = '#388e3c';
+            } else {
+                previewCha.style.display = 'none';
+                gpsStatusCha.textContent = '';
+            }
+
             fechaInput.value = client.fecha === '-' ? '' : client.fecha;
             turnoInput.value = client.turno || '-';
             situacionInput.value = client.situacion;
@@ -1914,12 +1995,21 @@ document.addEventListener('DOMContentLoaded', () => {
             modalTitle.textContent = 'Agregar Nuevo Cliente';
             clientForm.reset();
             idInput.value = '';
+            conyugeNombre.value = '';
+            conyugeDni.value = '';
+            aval1Nombre.value = '';
+            aval1Dni.value = '';
+            aval2Nombre.value = '';
+            aval2Dni.value = '';
+            gpsDomInput.value = '';
+            gpsChaInput.value = '';
+            previewDom.style.display = 'none';
+            previewCha.style.display = 'none';
+            gpsStatusDom.textContent = '';
+            gpsStatusCha.textContent = '';
             turnoInput.value = '-';
             situacionInput.value = 'Pendiente';
             desembolsoInput.value = '-';
-            observacionesInput.value = '';
-            refPersonalInput.value = '';
-            refComercialInput.value = '';
             observacionesInput.value = '';
             refPersonalInput.value = '';
             refComercialInput.value = '';
