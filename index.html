@@ -417,6 +417,7 @@
         }
 
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/exif-js"></script>
 </head>
 <body>
 
@@ -839,6 +840,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const productoInput = document.getElementById('producto');
     const montoInput = document.getElementById('monto');
     const lugarInput = document.getElementById('lugar');
+    const uploadGps = document.getElementById('upload-gps');
+    const gpsLinkInput = document.getElementById('gps-link');
+    const gpsLinkPreview = document.getElementById('gps-link-preview');
+    const gpsStatus = document.getElementById('gps-status');
     const fechaInput = document.getElementById('fecha');
     const turnoInput = document.getElementById('turno');
     const situacionInput = document.getElementById('situacion');
@@ -1053,6 +1058,7 @@ document.addEventListener('DOMContentLoaded', () => {
             producto: productoInput.value.trim() || '-',
             monto: montoInput.value.trim() || '-',
             lugar: lugarInput.value.trim() || '-',
+            gps_link: gpsLinkInput.value.trim() || '',
             fecha: fechaInput.value || '-',
             turno: turnoInput.value,
             situacion: situacionInput.value,
@@ -1238,6 +1244,57 @@ document.addEventListener('DOMContentLoaded', () => {
         container.innerHTML = topProducts.map(p => 
             `<span class="product-chip" onclick="setProduct('${p}')">+ ${p}</span>`
         ).join('');
+    }
+
+    
+    // EXIF GPS EXTRACTION
+    if (uploadGps) {
+        uploadGps.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            gpsStatus.textContent = "⌛ Leyendo foto...";
+            gpsStatus.style.color = "#ff9800";
+            
+            EXIF.getData(file, function() {
+                try {
+                    const lat = EXIF.getTag(this, "GPSLatitude");
+                    const lon = EXIF.getTag(this, "GPSLongitude");
+                    const latRef = EXIF.getTag(this, "GPSLatitudeRef");
+                    const lonRef = EXIF.getTag(this, "GPSLongitudeRef");
+                    
+                    if (lat && lon) {
+                        let latDec = lat[0] + lat[1]/60 + lat[2]/3600;
+                        if (latRef === "S") latDec = -latDec;
+                        
+                        let lonDec = lon[0] + lon[1]/60 + lon[2]/3600;
+                        if (lonRef === "W") lonDec = -lonDec;
+                        
+                        const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${latDec},${lonDec}`;
+                        gpsLinkInput.value = mapsUrl;
+                        
+                        gpsLinkPreview.href = mapsUrl;
+                        gpsLinkPreview.style.display = 'block';
+                        gpsStatus.textContent = "✅ Coordenadas extraídas con éxito";
+                        gpsStatus.style.color = "#4caf50";
+                        
+                        // Si el lugar estaba vacío, poner algo automático
+                        if (!lugarInput.value.trim()) {
+                            lugarInput.value = "Ubicación GPS Extraída";
+                        }
+                    } else {
+                        gpsStatus.textContent = "❌ La foto no tiene datos de ubicación GPS.";
+                        gpsStatus.style.color = "#f44336";
+                        gpsLinkPreview.style.display = 'none';
+                        gpsLinkInput.value = "";
+                    }
+                } catch(err) {
+                    gpsStatus.textContent = "❌ Error leyendo la foto.";
+                    gpsStatus.style.color = "#f44336";
+                }
+                uploadGps.value = ''; // reset
+            });
+        });
     }
 
     // --- NUEVAS MEJORAS JS ---
