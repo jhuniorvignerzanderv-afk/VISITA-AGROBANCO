@@ -579,7 +579,7 @@
                     <th class="sortable" onclick="sortTable('dni')">DNI / AVALES ↕️</th>
                     <th>N° DE TELEFONO</th>
                     <th class="sortable" onclick="sortTable('producto')">PRODUCTO ↕️</th>
-                    <th class="sortable" onclick="sortTable('monto')">MONTO ↕️</th>
+                    <th class="sortable" onclick="sortTable('monto')">MONTO / PLAZO ↕️</th>
                     <th class="sortable" onclick="sortTable('lugar')">LUGAR / GPS ↕️</th>
                     <th class="sortable" onclick="sortTable('fecha')">FECHA DE VISITA ↕️</th>
                     <th class="sortable" onclick="sortTable('turno')">TURNO ↕️</th>
@@ -667,9 +667,24 @@
                 </datalist>
             </div>
             
-            <div class="form-group">
-                <label for="monto">MONTO</label>
-                <input type="number" id="monto" step="0.01">
+            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                <div class="form-group" style="flex: 3; margin-bottom: 0;">
+                    <label for="monto">MONTO SOLICITADO (S/)</label>
+                    <input type="number" id="monto" step="0.01" placeholder="Ej: 15000">
+                </div>
+                <div class="form-group" style="flex: 2; margin-bottom: 0;">
+                    <label for="plazo_meses">PLAZO (MESES)</label>
+                    <input type="number" id="plazo_meses" min="1" max="60" placeholder="Ej: 4">
+                </div>
+            </div>
+            <div style="display: flex; gap: 5px; margin-top: -8px; margin-bottom: 15px; flex-wrap: wrap;">
+                <span style="font-size: 11px; color: #666; align-self: center;">⚡ Plazo (avance):</span>
+                <button type="button" class="btn" style="padding: 2px 7px; font-size: 11px; background: #e0e0e0; color: #333; border: 1px solid #ccc; margin:0;" onclick="document.getElementById('plazo_meses').value=3">3 m</button>
+                <button type="button" class="btn" style="padding: 2px 7px; font-size: 11px; background: #e0e0e0; color: #333; border: 1px solid #ccc; margin:0;" onclick="document.getElementById('plazo_meses').value=4">4 m</button>
+                <button type="button" class="btn" style="padding: 2px 7px; font-size: 11px; background: #e0e0e0; color: #333; border: 1px solid #ccc; margin:0;" onclick="document.getElementById('plazo_meses').value=5">5 m</button>
+                <button type="button" class="btn" style="padding: 2px 7px; font-size: 11px; background: #e0e0e0; color: #333; border: 1px solid #ccc; margin:0;" onclick="document.getElementById('plazo_meses').value=6">6 m</button>
+                <button type="button" class="btn" style="padding: 2px 7px; font-size: 11px; background: #e0e0e0; color: #333; border: 1px solid #ccc; margin:0;" onclick="document.getElementById('plazo_meses').value=8">8 m</button>
+                <button type="button" class="btn" style="padding: 2px 7px; font-size: 11px; background: #e0e0e0; color: #333; border: 1px solid #ccc; margin:0;" onclick="document.getElementById('plazo_meses').value=12">12 m</button>
             </div>
             
             <div class="form-group" style="background: rgba(2, 136, 209, 0.04); border: 1px solid #b3e5fc; padding: 12px; border-radius: 6px;">
@@ -896,6 +911,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const telefonoInput = document.getElementById('telefono');
     const productoInput = document.getElementById('producto');
     const montoInput = document.getElementById('monto');
+    const plazoMesesInput = document.getElementById('plazo_meses');
     const lugarInput = document.getElementById('lugar');
     const uploadGpsDom = document.getElementById('upload-gps-dom');
     const uploadGpsCha = document.getElementById('upload-gps-cha');
@@ -1019,6 +1035,7 @@ document.addEventListener('DOMContentLoaded', () => {
             'N° DE TELEFONO': c.telefono !== '-' ? c.telefono : '',
             'PRODUCTO': c.producto !== '-' ? c.producto : '',
             'MONTO': c.monto !== '-' ? c.monto : '',
+            'PLAZO (MESES)': c.plazo_meses || '',
             'LUGAR DE VISITA': c.lugar !== '-' && c.lugar ? c.lugar : '',
             'GPS CASA (DOMICILIO)': c.gps_dom || '',
             'GPS TERRENO (CHACRA)': c.gps_cha || '',
@@ -1118,6 +1135,8 @@ document.addEventListener('DOMContentLoaded', () => {
             previewCha.style.display = 'none';
             gpsStatusDom.textContent = '';
             gpsStatusCha.textContent = '';
+            montoInput.value = '';
+            plazoMesesInput.value = '';
             turnoInput.value = '-';
             situacionInput.value = 'Pendiente';
             desembolsoInput.value = '-';
@@ -1141,6 +1160,7 @@ document.addEventListener('DOMContentLoaded', () => {
             telefono: telefonoInput.value.trim() || '-',
             producto: productoInput.value.trim() || '-',
             monto: montoInput.value.trim() || '-',
+            plazo_meses: plazoMesesInput.value.trim() || '',
             lugar: lugarInput.value.trim() || '-',
             gps_dom: gpsDomInput.value.trim() || '',
             gps_cha: gpsChaInput.value.trim() || '',
@@ -1204,6 +1224,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             telefono: row['N° DE TELEFONO'] || row['Teléfono'] || row['Telefono'] || row['telefono'] || '-',
                             producto: row['PRODUCTO'] || row['Producto'] || row['producto'] || '-',
                             monto: row['MONTO'] || row['Monto'] || row['monto'] || '-',
+                            plazo_meses: row['PLAZO (MESES)'] || row['PLAZO'] || row['Plazo'] || row['plazo'] || row['Meses'] || '',
                             lugar: row['LUGAR DE VISITA'] || row['Lugar'] || row['lugar'] || '-',
                             fecha: row['FECHA DE VISITA'] || row['Fecha'] || row['fecha'] || '-',
                             turno: row['TURNO'] || row['Turno'] || row['turno'] || '-',
@@ -1896,7 +1917,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         ` : ''}
                     </td>
                     <td>${c.producto || '-'}</td>
-                    <td>${c.monto || '-'}</td>
+                    <td>
+                        <strong style="font-size: 13px; color: #333;">${c.monto && c.monto !== '-' ? (String(c.monto).startsWith('S/') ? c.monto : 'S/ ' + c.monto) : '-'}</strong>
+                        ${c.plazo_meses ? `<div style="font-size: 10.5px; color: #e65100; font-weight: bold; margin-top: 2px;">⏳ ${c.plazo_meses} meses</div>` : ''}
+                    </td>
                     <td>
                         <div style="font-weight: 600; font-size: 12px; margin-bottom: 4px; color: #333;">${(c.lugar && c.lugar !== '-') ? c.lugar : '-'}</div>
                         <div style="display: flex; gap: 4px; flex-wrap: wrap;">
@@ -1959,6 +1983,7 @@ document.addEventListener('DOMContentLoaded', () => {
             telefonoInput.value = client.telefono === '-' ? '' : client.telefono;
             productoInput.value = client.producto === '-' || !client.producto ? '' : client.producto;
             montoInput.value = client.monto === '-' || !client.monto ? '' : client.monto;
+            plazoMesesInput.value = client.plazo_meses || '';
             lugarInput.value = client.lugar === '-' || !client.lugar ? '' : client.lugar;
             
             // GPS Casa y Terreno
@@ -2006,7 +2031,8 @@ document.addEventListener('DOMContentLoaded', () => {
             previewDom.style.display = 'none';
             previewCha.style.display = 'none';
             gpsStatusDom.textContent = '';
-            gpsStatusCha.textContent = '';
+            montoInput.value = '';
+            plazoMesesInput.value = '';
             turnoInput.value = '-';
             situacionInput.value = 'Pendiente';
             desembolsoInput.value = '-';
