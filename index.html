@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Programacion de Visitas (Actualizado)</title>
-    <script src="xlsx.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <script src="xlsx.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js" defer></script>
     <style>
         /* Dark Mode */
         body.dark-mode {
@@ -480,6 +480,10 @@
 
     <div id="loading-indicator" style="display: none; text-align: center; padding: 10px; background-color: #e3f2fd; color: #1565c0; font-weight: bold; margin-bottom: 15px; border-radius: 4px;">
         Sincronizando con Google Sheets...
+    </div>
+    <div id="cloud-sync-bar" style="display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin-bottom: 8px; font-size: 12px;">
+        <span id="cloud-sync-status" style="color: #2e7d32; font-weight: bold;">💾 Datos listos</span>
+        <button type="button" id="btn-force-sync" onclick="manualCloudSync()" style="background: #e8f5e9; color: #1b5e20; border: 1px solid #81c784; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px;">🔄 Sincronizar con Nube</button>
     </div>
 
     <div id="global-alert" style="display: none; background-color: #ffcdd2; color: #b71c1c; padding: 12px; margin-bottom: 20px; border-radius: 8px; border-left: 5px solid #d32f2f; font-size: 14px; line-height: 1.5;">
@@ -778,9 +782,18 @@
                 </select>
             </div>
             
-            <div class="action-buttons" style="margin-top: 15px;">
-                <button type="submit" id="btn-save" class="btn btn-primary" style="flex: 1;">Guardar Cliente</button>
-                <button type="button" id="btn-save-and-add" class="btn" style="flex: 1; background-color: #607d8b; color: white;">Guardar y Agregar Otro</button>
+            <div class="action-buttons" style="margin-top: 15px; display: flex; flex-direction: column; gap: 8px;">
+
+                <div style="display: flex; gap: 10px;">
+
+                    <button type="submit" id="btn-save" class="btn btn-primary" style="flex: 1;">Guardar Cliente</button>
+
+                    <button type="button" id="btn-save-and-add" class="btn" style="flex: 1; background-color: #607d8b; color: white;">Guardar y Agregar Otro</button>
+
+                </div>
+
+                <button type="button" id="btn-modal-reject" class="btn" style="width: 100%; background-color: #c62828; color: white; display: none; padding: 11px; font-size: 14px; font-weight: bold; border-radius: 4px;" onclick="openRejectFromModal()">🚫 Cliente No Califica / Eliminar Visita</button>
+
             </div>
         </form>
     </div>
@@ -980,7 +993,13 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     
     // DOM Elements
-    const loadingIndicator = document.getElementById('loading-indicator');
+    const loadingIndicator = document.getElementById('loading-indicator');
+    // Failsafe absoluto: nunca permitir que el indicador de carga quede pegado más de 3s
+    const loadingFailsafeTimer = setInterval(() => {
+        if (loadingIndicator && loadingIndicator.style.display === 'block') {
+            loadingIndicator.style.display = 'none';
+        }
+    }, 3000);
     const tbody = document.getElementById('clients-tbody');
     const emptyState = document.getElementById('empty-state');
     const searchInput = document.getElementById('search-input');
@@ -1032,73 +1051,247 @@ document.addEventListener('DOMContentLoaded', () => {
     const refComercialInput = document.getElementById('ref_comercial');
 
     // Init
-    async function initData() {
-        loadingIndicator.style.display = 'block';
-        loadingIndicator.textContent = 'Cargando datos...';
-        
-        // Load from local storage first for instant display
-        const localData = localStorage.getItem('agrobanco_clients_offline');
-        if (localData) {
-            clients = JSON.parse(localData);
-            renderTable();
-        }
-        
-        try {
-            const response = await fetch(API_URL);
-            if(response.ok) {
-                const data = await response.json();
-                clients = data.map(c => {
-                    if (c.fecha && c.fecha.includes('T')) {
-                        c.fecha = c.fecha.split('T')[0];
-                    }
-                    return c;
-                });
-                localStorage.setItem('agrobanco_manual_clients', JSON.stringify(clients)); // Backup local
-            } else {
-                throw new Error('Network error');
-            }
-        } catch (error) {
-            console.error('Error fetching data:', error);
-            // Fallback a local
-            const stored = localStorage.getItem('agrobanco_manual_clients');
-            if (stored) clients = JSON.parse(stored);
-            alert("No se pudo conectar a Google Sheets. Usando datos locales temporales.");
-        }
-        
-        loadingIndicator.style.display = 'none';
+    function calculateRolloverAndRender() {
 
-        // Identificar los pendientes atrasados para mostrarlos en la alerta
         const todayD = new Date();
+
         todayD.setHours(0,0,0,0);
+
         const localTodayStr = todayD.getFullYear() + '-' + String(todayD.getMonth() + 1).padStart(2, '0') + '-' + String(todayD.getDate()).padStart(2, '0');
+
         
+
         let rolledOverNames = [];
+
         let scheduledTodayNames = [];
 
+
+
         clients.forEach(c => {
+
             const stat = c.situacion ? c.situacion.trim().toLowerCase() : '';
+
             const des = c.desembolso ? c.desembolso.trim().toLowerCase() : '';
-            const isReallyAtendido = (stat === 'atendido' || des === 'desembolsado');
+
+            const isReallyAtendido = (stat === 'atendido' || des === 'desembolsado' || stat === 'no califica');
+
+
 
             if (!isReallyAtendido && stat === 'pendiente' && c.fecha && c.fecha !== '-') {
+
                 const cDate = new Date(c.fecha + 'T00:00:00');
+
                 if (cDate < todayD) {
-                    rolledOverNames.push(c); // Guardamos el objeto completo para gestionarlos
+
+                    rolledOverNames.push(c);
+
                 } else if (c.fecha === localTodayStr) {
-                    scheduledTodayNames.push(c); // Guardamos el objeto completo
+
+                    scheduledTodayNames.push(c);
+
                 }
+
             }
+
         });
 
+
+
         window.rolloverData = {
+
             rolled: rolledOverNames,
+
             today: scheduledTodayNames
+
         };
 
+
+
         renderTable();
+
     }
+
+
+
+    async function initData() {
+
+        // Carga inmediata de clientes desde el almacenamiento del dispositivo (0 segundos)
+
+        try {
+
+            const localOffline = localStorage.getItem('agrobanco_clients_offline');
+
+            const localManual = localStorage.getItem('agrobanco_manual_clients');
+
+            const raw = localOffline || localManual;
+
+            if (raw) {
+
+                const parsed = JSON.parse(raw);
+
+                if (Array.isArray(parsed) && parsed.length > 0) {
+
+                    clients = parsed;
+
+                }
+
+            }
+
+        } catch(e) {
+
+            console.error('Error cargando almacenamiento local:', e);
+
+        }
+
+
+
+        // Mostrar datos de inmediato sin bloquear
+
+        if (loadingIndicator) loadingIndicator.style.display = 'none';
+
+        calculateRolloverAndRender();
+
+
+
+        // Sincronización en segundo plano con límite estricto de 4s
+
+        try {
+
+            const controller = new AbortController();
+
+            const timeoutId = setTimeout(() => controller.abort(), 4000);
+
+            
+
+            const response = await fetch(API_URL, { signal: controller.signal });
+
+            clearTimeout(timeoutId);
+
+            
+
+            if (response.ok) {
+
+                const data = await response.json();
+
+                if (Array.isArray(data) && data.length > 0) {
+
+                    const cloudClients = data.map(c => {
+
+                        if (c.fecha && c.fecha.includes('T')) {
+
+                            c.fecha = c.fecha.split('T')[0];
+
+                        }
+
+                        return c;
+
+                    });
+
+                    
+
+                    // Combinar respetando clientes locales que no estén en la nube
+
+                    const cloudMap = new Map();
+
+                    cloudClients.forEach(c => { if (c.id) cloudMap.set(c.id, c); });
+
+                    
+
+                    let merged = [...cloudClients];
+
+                    const seen = new Set(cloudClients.map(c => c.id));
+
+                    clients.forEach(c => {
+
+                        if (c.id && !seen.has(c.id)) {
+
+                            merged.push(c);
+
+                            seen.add(c.id);
+
+                        }
+
+                    });
+
+                    
+
+                    clients = merged;
+
+                    localStorage.setItem('agrobanco_manual_clients', JSON.stringify(clients));
+
+                    localStorage.setItem('agrobanco_clients_offline', JSON.stringify(clients));
+
+                    calculateRolloverAndRender();
+
+                }
+
+            }
+
+        } catch (error) {
+
+            console.log('Modo local activo o Google Sheets no disponible temporalmente.');
+
+        } finally {
+
+            if (loadingIndicator) loadingIndicator.style.display = 'none';
+
+        }
+
+    }
+
     
-    initData();
+
+    
+    function setCloudStatus(text, color) {
+        const el = document.getElementById('cloud-sync-status');
+        if (el) {
+            el.textContent = text;
+            if (color) el.style.color = color;
+        }
+    }
+
+    window.manualCloudSync = async function() {
+        setCloudStatus('🔄 Sincronizando...', '#1565c0');
+        try {
+            const controller = new AbortController();
+            const tid = setTimeout(() => controller.abort(), 8000);
+            const resp = await fetch(API_URL, { signal: controller.signal });
+            clearTimeout(tid);
+            if (resp.ok) {
+                const data = await resp.json();
+                if (Array.isArray(data)) {
+                    const cloudClients = data.map(c => {
+                        if (c.fecha && String(c.fecha).includes('T')) c.fecha = String(c.fecha).split('T')[0];
+                        return c;
+                    });
+                    const seen = new Set(cloudClients.map(c => c.id));
+                    let merged = [...cloudClients];
+                    clients.forEach(c => {
+                        if (c.id && !seen.has(c.id)) {
+                            merged.push(c);
+                            seen.add(c.id);
+                        }
+                    });
+                    clients = merged;
+                    localStorage.setItem('agrobanco_manual_clients', JSON.stringify(clients));
+                    localStorage.setItem('agrobanco_clients_offline', JSON.stringify(clients));
+                    calculateRolloverAndRender();
+                    // Push merged back up
+                    fetch(API_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                        body: JSON.stringify({ clients: clients })
+                    }).catch(()=>{});
+                    setCloudStatus('☁️ Sincronizado al 100%', '#2e7d32');
+                    return;
+                }
+            }
+            setCloudStatus('💾 Modo Local (sin respuesta de nube)', '#ef6c00');
+        } catch(e) {
+            setCloudStatus('💾 Modo Local (guardado en tu equipo)', '#ef6c00');
+        }
+    };
+initData();
 
     // Event Listeners
     btnAdd.addEventListener('click', () => {
@@ -1590,6 +1783,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 4. Update Chart
     window.myChart = null;
     function updateChart() {
+        if (typeof Chart === 'undefined') return;
         const ctx = document.getElementById('productChart');
         if (!ctx) return;
         
@@ -2024,7 +2218,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <button class="btn" style="background-color: #ff9800; color: white; flex: 1; padding: 6px 4px; font-size: 11.5px;" onclick="event.stopPropagation(); openReprogram('${c.id}')" title="Cambiar fecha o turno">📅 Reprog.</button>
                         <button class="btn" style="background-color: #ef6c00; color: white; flex: 1; padding: 6px 4px; font-size: 11.5px;" onclick="event.stopPropagation(); passSingleClientNextMonth('${c.id}')" title="Pasar al siguiente mes">⏭️ Sig. Mes</button>
                     </div>
-                    <button class="btn" style="background-color: #616161; color: white; width: 100%; margin-bottom: 5px; padding: 6px; font-size: 11.5px;" onclick="event.stopPropagation(); openRejectModal('${c.id}')">🚫 No Cumple / Eliminar</button>
+                    <button class="btn" style="background-color: #c62828; color: white; width: 100%; margin-bottom: 5px; padding: 7px; font-size: 12px; font-weight: bold; border-radius: 4px;" onclick="event.stopPropagation(); openRejectModal('${c.id}')">🚫 No Cumple / Eliminar</button>
                 `;
                 if (c.situacion !== 'Atendido') {
                     quickActions += `<button class="btn" style="background-color: var(--success-color); color: white; width: 100%; margin-bottom: 5px;" onclick="event.stopPropagation(); quickMark('${c.id}', 'Atendido', null)">✅ Atendido</button>`;
@@ -2095,15 +2289,47 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
         
-        renderCalendarDashboard();
-        updateChart();
+        try { renderCalendarDashboard(); } catch(e) { console.error('Calendar render error:', e); }
+        try { updateChart(); } catch(e) { console.error('Chart render error:', e); }
     }
 
-    function openModal(client = null) {
+    
+
+    window.openRejectFromModal = function() {
+
+        const id = idInput.value;
+
+        if (!id) return;
+
+        modal.style.display = 'none';
+
+        openRejectModal(id);
+
+    };
+
+
+
+    window.restoreClient = function(id) {
+
+        const idx = clients.findIndex(c => c.id === id);
+
+        if (idx !== -1) {
+
+            clients[idx].situacion = 'Pendiente';
+
+            saveAndRender();
+
+        }
+
+    };
+
+function openModal(client = null) {
         modal.style.display = 'block';
         renderQuickProducts();
         if (client) {
             modalTitle.textContent = 'Editar Cliente';
+
+        const btnMR = document.getElementById('btn-modal-reject'); if (btnMR) btnMR.style.display = 'block';
             idInput.value = client.id;
             clienteInput.value = client.cliente;
             dniInput.value = client.dni === '-' ? '' : client.dni;
@@ -2151,6 +2377,8 @@ document.addEventListener('DOMContentLoaded', () => {
             refComercialInput.value = client.ref_comercial || '';
         } else {
             modalTitle.textContent = 'Agregar Nuevo Cliente';
+
+        const btnMR2 = document.getElementById('btn-modal-reject'); if (btnMR2) btnMR2.style.display = 'none';
             clientForm.reset();
             idInput.value = '';
             conyugeNombre.value = '';
@@ -2256,28 +2484,50 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function saveAndRender() {
-        // Update UI immediately
-        localStorage.setItem('agrobanco_manual_clients', JSON.stringify(clients));
-        renderTable();
-        
-        // Sync with cloud
-        loadingIndicator.style.display = 'block';
-        loadingIndicator.textContent = 'Guardando cambios en Google Sheets...';
-        
+
+        // Guardar al instante en el navegador
+
         try {
-            await localStorage.setItem('agrobanco_clients_offline', JSON.stringify(clients));
-            fetch(API_URL, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'text/plain;charset=utf-8',
-                },
-                body: JSON.stringify({ clients: clients })
-            });
-        } catch (error) {
-            console.error('Error al guardar en la nube:', error);
+
+            localStorage.setItem('agrobanco_manual_clients', JSON.stringify(clients));
+
+            localStorage.setItem('agrobanco_clients_offline', JSON.stringify(clients));
+
+        } catch(e) {
+
+            console.error('Error guardando en almacenamiento:', e);
+
         }
-        loadingIndicator.style.display = 'none';
+
+        renderTable();
+
+        
+
+        // Enviar a Google Sheets en segundo plano sin bloquear pantalla
+
+        try {
+
+            fetch(API_URL, {
+
+                method: 'POST',
+
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+
+                body: JSON.stringify({ clients: clients })
+
+            }).catch(e => console.log('Sincronización en segundo plano pendiente'));
+
+        } catch (error) {
+
+            console.error('Error en segundo plano:', error);
+
+        }
+
+        if (loadingIndicator) loadingIndicator.style.display = 'none';
+
     }
+
+
 
     let calendarWeekOffset = 0;
 
@@ -2287,8 +2537,8 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             calendarWeekOffset += direction;
         }
-        renderCalendarDashboard();
-        updateChart();
+        try { renderCalendarDashboard(); } catch(e) { console.error('Calendar render error:', e); }
+        try { updateChart(); } catch(e) { console.error('Chart render error:', e); }
     };
 
     function renderCalendarDashboard() {
@@ -2429,10 +2679,9 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     window.deleteClient = function(id) {
-        if (confirm('¿Eliminar este cliente?')) {
-            clients = clients.filter(c => c.id !== id);
-            saveAndRender();
-        }
+
+        openRejectModal(id);
+
     };
 
     window.quickMark = function(id, situacion, desembolso) {
