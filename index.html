@@ -480,10 +480,14 @@
 
     <div id="loading-indicator" style="display: none; text-align: center; padding: 10px; background-color: #e3f2fd; color: #1565c0; font-weight: bold; margin-bottom: 15px; border-radius: 4px;">
         Sincronizando con Google Sheets...
-    </div>
-    <div id="cloud-sync-bar" style="display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin-bottom: 8px; font-size: 12px;">
-        <span id="cloud-sync-status" style="color: #2e7d32; font-weight: bold;">💾 Datos listos</span>
-        <button type="button" id="btn-force-sync" onclick="manualCloudSync()" style="background: #e8f5e9; color: #1b5e20; border: 1px solid #81c784; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px;">🔄 Sincronizar con Nube</button>
+    </div>
+
+    <div id="cloud-sync-bar" style="display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin-bottom: 8px; font-size: 12px;">
+
+        <span id="cloud-sync-status" style="color: #2e7d32; font-weight: bold;">💾 Datos listos</span>
+
+        <button type="button" id="btn-force-sync" onclick="manualCloudSync()" style="background: #e8f5e9; color: #1b5e20; border: 1px solid #81c784; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px;">🔄 Sincronizar con Nube</button>
+
     </div>
 
     <div id="global-alert" style="display: none; background-color: #ffcdd2; color: #b71c1c; padding: 12px; margin-bottom: 20px; border-radius: 8px; border-left: 5px solid #d32f2f; font-size: 14px; line-height: 1.5;">
@@ -930,6 +934,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // State
     let clients = [];
+
+    let sortColumn = '';
+
+    let sortAsc = true;
+
+    let calendarWeekOffset = 0;
+
+    window.myChart = null;
+
+    const monthNamesEs = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Setiembre', 'Octubre', 'Noviembre', 'Diciembre'];
     window.calendarFilter = null;
     
     window.setCalendarFilter = function(date, type, textDesc) {
@@ -993,12 +1007,18 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     
     // DOM Elements
-    const loadingIndicator = document.getElementById('loading-indicator');
-    // Failsafe absoluto: nunca permitir que el indicador de carga quede pegado más de 3s
-    const loadingFailsafeTimer = setInterval(() => {
-        if (loadingIndicator && loadingIndicator.style.display === 'block') {
-            loadingIndicator.style.display = 'none';
-        }
+    const loadingIndicator = document.getElementById('loading-indicator');
+
+    // Failsafe absoluto: nunca permitir que el indicador de carga quede pegado más de 3s
+
+    const loadingFailsafeTimer = setInterval(() => {
+
+        if (loadingIndicator && loadingIndicator.style.display === 'block') {
+
+            loadingIndicator.style.display = 'none';
+
+        }
+
     }, 3000);
     const tbody = document.getElementById('clients-tbody');
     const emptyState = document.getElementById('empty-state');
@@ -1149,17 +1169,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (loadingIndicator) loadingIndicator.style.display = 'none';
 
-        calculateRolloverAndRender();
+        try { calculateRolloverAndRender(); } catch(e) { console.error('Initial render error:', e); }
 
 
 
-        // Sincronización en segundo plano con límite estricto de 4s
+        // Sincronización en segundo plano (no congela la pantalla)
+        if (typeof setCloudStatus === 'function') setCloudStatus('🔄 Conectando con la nube...', '#1565c0');
 
         try {
 
             const controller = new AbortController();
 
-            const timeoutId = setTimeout(() => controller.abort(), 4000);
+            const timeoutId = setTimeout(() => controller.abort(), 15000);
 
             
 
@@ -1229,7 +1250,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } catch (error) {
 
-            console.log('Modo local activo o Google Sheets no disponible temporalmente.');
+            console.log('Modo local activo o Google Sheets no disponible temporalmente.');
+            if (typeof setCloudStatus === 'function') setCloudStatus('💾 Modo Local (guardado en tu equipo)', '#ef6c00');
 
         } finally {
 
@@ -1241,57 +1263,107 @@ document.addEventListener('DOMContentLoaded', () => {
 
     
 
-    
-    function setCloudStatus(text, color) {
-        const el = document.getElementById('cloud-sync-status');
-        if (el) {
-            el.textContent = text;
-            if (color) el.style.color = color;
-        }
-    }
-
-    window.manualCloudSync = async function() {
-        setCloudStatus('🔄 Sincronizando...', '#1565c0');
-        try {
-            const controller = new AbortController();
-            const tid = setTimeout(() => controller.abort(), 8000);
-            const resp = await fetch(API_URL, { signal: controller.signal });
-            clearTimeout(tid);
-            if (resp.ok) {
-                const data = await resp.json();
-                if (Array.isArray(data)) {
-                    const cloudClients = data.map(c => {
-                        if (c.fecha && String(c.fecha).includes('T')) c.fecha = String(c.fecha).split('T')[0];
-                        return c;
-                    });
-                    const seen = new Set(cloudClients.map(c => c.id));
-                    let merged = [...cloudClients];
-                    clients.forEach(c => {
-                        if (c.id && !seen.has(c.id)) {
-                            merged.push(c);
-                            seen.add(c.id);
-                        }
-                    });
-                    clients = merged;
-                    localStorage.setItem('agrobanco_manual_clients', JSON.stringify(clients));
-                    localStorage.setItem('agrobanco_clients_offline', JSON.stringify(clients));
-                    calculateRolloverAndRender();
-                    // Push merged back up
-                    fetch(API_URL, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                        body: JSON.stringify({ clients: clients })
-                    }).catch(()=>{});
-                    setCloudStatus('☁️ Sincronizado al 100%', '#2e7d32');
-                    return;
-                }
-            }
-            setCloudStatus('💾 Modo Local (sin respuesta de nube)', '#ef6c00');
-        } catch(e) {
-            setCloudStatus('💾 Modo Local (guardado en tu equipo)', '#ef6c00');
-        }
-    };
-initData();
+    
+
+    function setCloudStatus(text, color) {
+
+        const el = document.getElementById('cloud-sync-status');
+
+        if (el) {
+
+            el.textContent = text;
+
+            if (color) el.style.color = color;
+
+        }
+
+    }
+
+
+
+    window.manualCloudSync = async function() {
+
+        setCloudStatus('🔄 Sincronizando...', '#1565c0');
+
+        try {
+
+            const controller = new AbortController();
+
+            const tid = setTimeout(() => controller.abort(), 8000);
+
+            const resp = await fetch(API_URL, { signal: controller.signal });
+
+            clearTimeout(tid);
+
+            if (resp.ok) {
+
+                const data = await resp.json();
+
+                if (Array.isArray(data)) {
+
+                    const cloudClients = data.map(c => {
+
+                        if (c.fecha && String(c.fecha).includes('T')) c.fecha = String(c.fecha).split('T')[0];
+
+                        return c;
+
+                    });
+
+                    const seen = new Set(cloudClients.map(c => c.id));
+
+                    let merged = [...cloudClients];
+
+                    clients.forEach(c => {
+
+                        if (c.id && !seen.has(c.id)) {
+
+                            merged.push(c);
+
+                            seen.add(c.id);
+
+                        }
+
+                    });
+
+                    clients = merged;
+
+                    localStorage.setItem('agrobanco_manual_clients', JSON.stringify(clients));
+
+                    localStorage.setItem('agrobanco_clients_offline', JSON.stringify(clients));
+
+                    calculateRolloverAndRender();
+
+                    // Push merged back up
+
+                    fetch(API_URL, {
+
+                        method: 'POST',
+
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+
+                        body: JSON.stringify({ clients: clients })
+
+                    }).catch(()=>{});
+
+                    setCloudStatus('☁️ Sincronizado al 100%', '#2e7d32');
+
+                    return;
+
+                }
+
+            }
+
+            setCloudStatus('💾 Modo Local (sin respuesta de nube)', '#ef6c00');
+
+        } catch(e) {
+
+            setCloudStatus('💾 Modo Local (guardado en tu equipo)', '#ef6c00');
+
+        }
+
+    };
+
+// initData moved to end of DOMContentLoaded
 
     // Event Listeners
     btnAdd.addEventListener('click', () => {
@@ -1753,8 +1825,6 @@ initData();
     }
 
     // 3. Sorting logic
-    let sortColumn = '';
-    let sortAsc = true;
     window.sortTable = function(column) {
         if (sortColumn === column) {
             sortAsc = !sortAsc; // toggle
@@ -1781,7 +1851,6 @@ initData();
     };
 
     // 4. Update Chart
-    window.myChart = null;
     function updateChart() {
         if (typeof Chart === 'undefined') return;
         const ctx = document.getElementById('productChart');
@@ -2529,7 +2598,6 @@ function openModal(client = null) {
 
 
 
-    let calendarWeekOffset = 0;
 
     window.changeCalendarWeek = function(direction) {
         if (direction === 0) {
@@ -2700,7 +2768,6 @@ function openModal(client = null) {
     }
 
     // --- NUEVAS FUNCIONES: VISITAS POR MES, PASAR AL SIGUIENTE MES Y DESESTIMAR/ELIMINAR ---
-    const monthNamesEs = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Setiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
     function formatMonthLabel(ym) {
         const parts = ym.split('-');
@@ -2960,6 +3027,8 @@ function openModal(client = null) {
             renderTable();
         }
     };
+
+    initData();
 });
 </script>
 </body>
