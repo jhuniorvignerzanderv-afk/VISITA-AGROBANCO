@@ -27,7 +27,8 @@
         body.dark-mode th { background-color: #2c2c2c; color: #fff; }
         body.dark-mode tr:hover, body.dark-mode tbody tr:hover { background-color: #333; }
         body.dark-mode .btn-icon { background: #333; color: #e0e0e0; border-color: #555; }
-        body.dark-mode input, body.dark-mode select { background-color: #2c2c2c; color: #fff; border-color: #555; }
+        body.dark-mode input, body.dark-mode select { background-color: #2c2c2c; color: #fff; border-color: #555; }
+        body.dark-mode #current-month-badge { background-color: #1b5e20 !important; color: #e8f5e9 !important; border-color: #4caf50 !important; }
         
         /* Highlight Today */
         .today-row { background-color: #fffde7 !important; border-left: 4px solid #fbc02d; }
@@ -424,7 +425,12 @@
 
 <div class="container">
     <header>
-        <h1>Programación de Visitas</h1>
+        <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+            <h1 style="margin: 0;">Programación de Visitas</h1>
+            <span id="current-month-badge" style="background-color: #e8f5e9; color: #1b5e20; border: 1px solid #81c784; padding: 6px 14px; border-radius: 20px; font-weight: 600; font-size: 14px; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
+                📅 Cargando mes...
+            </span>
+        </div>
                 <div>
             <button id="btn-toggle-dark" class="btn" style="background-color: #333; color: white;">🌙 Tema</button>
             <button id="btn-add-client" class="btn btn-primary">+ Agregar Cliente Manual</button>
@@ -1173,7 +1179,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 
-        // Sincronización en segundo plano (no congela la pantalla)
+        // Sincronización en segundo plano (no congela la pantalla)
+
         if (typeof setCloudStatus === 'function') setCloudStatus('🔄 Conectando con la nube...', '#1565c0');
 
         try {
@@ -1250,7 +1257,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } catch (error) {
 
-            console.log('Modo local activo o Google Sheets no disponible temporalmente.');
+            console.log('Modo local activo o Google Sheets no disponible temporalmente.');
+
             if (typeof setCloudStatus === 'function') setCloudStatus('💾 Modo Local (guardado en tu equipo)', '#ef6c00');
 
         } finally {
@@ -2776,6 +2784,25 @@ function openModal(client = null) {
         return `${monthNamesEs[mIdx] || parts[1]} ${parts[0]}`;
     }
 
+    function updateHeaderMonthBadge() {
+        const badge = document.getElementById('current-month-badge');
+        if (!badge) return;
+        const now = new Date();
+        const currMonthName = monthNamesEs[now.getMonth()];
+        const currYear = now.getFullYear();
+        const currYM = currYear + '-' + String(now.getMonth() + 1).padStart(2, '0');
+        
+        const mf = document.getElementById('month-filter');
+        const sel = mf ? mf.value : 'all';
+        
+        if (sel && sel !== 'all' && sel !== currYM) {
+            const viewLabel = sel === 'sin-fecha' ? 'Sin Fecha' : formatMonthLabel(sel);
+            badge.innerHTML = `📅 Mes Actual: <strong>${currMonthName} ${currYear}</strong> <span style="background:#fff3e0; color:#e65100; padding:2px 8px; border-radius:12px; font-size:12px; border:1px solid #ffb74d;">Viendo: ${viewLabel}</span>`;
+        } else {
+            badge.innerHTML = `📅 Mes Actual: <strong>${currMonthName} ${currYear}</strong>`;
+        }
+    }
+
     function updateMonthFilterOptions(selectEl) {
         const currentVal = selectEl.value || 'all';
         const now = new Date();
